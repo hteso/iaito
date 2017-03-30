@@ -12,6 +12,8 @@ A Qt and C++ GUI for radare2 reverse engineering framework
 
 Iaitō is not aimed to the already existing radare2 user, it is focused on those whose are not yet radare2 users because of the learning curve, because they don't like CLI applications or because of the difficulty/inestability of radare2.
 
+**IMPORTANT:** the actual status is **highly unstable**, it is an alpha version aimed for developers. Users please wait for the first stable release with installers.
+
 ## The code sucks
 
 Yes, the code sucks. Hopefully we will be able to remove this statement from the README one day, but I had never coded Qt nor C++ until I started Iaitō, so obviously the code is ugly and not well designed.
@@ -39,3 +41,9 @@ Iaitō is developed and tested in OS X and Linux, Windows will be added soon. Th
 Proper documentation and website will be created before the first release.
 
 Roadmap information for developers can be found [here](https://github.com/hteso/iaito/wiki/Roadmap)
+
+## Help
+
+Right now the best place to obtain help from Iaitō developers and community is joining this telegram group:
+
+- https://t.me/iaito
