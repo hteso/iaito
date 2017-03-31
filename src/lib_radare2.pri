@@ -10,7 +10,7 @@ win32 {
     }
 } else {
     # check if r2 is available
-    system(r2asdf > /dev/null 2>&1) {
+    system(r2 > /dev/null 2>&1) {
 
         # see https://github.com/hteso/iaito/pull/5#issuecomment-290433796
         RADARE2_INCLUDE_PATH = $$system(r2 -H | grep INCDIR | sed 's/[^=]*=//')
