@@ -1,13 +1,9 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2014-02-27T11:31:27
-#
-#-------------------------------------------------
-
-ICON = img/Enso.icns
-
+# DELETE_COMMENTS:
 # No idea what this does exactly
+# ballessay: this tells qmake that this project will be an application ;)
 TEMPLATE = app
+
+TARGET = iaito
 
 # The application version
 win32 {
@@ -16,34 +12,35 @@ win32 {
   VERSION = 1.0-dev
 }
 
+ICON = img/Enso.icns
+
+QT       += core gui webkit webkitwidgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+QT_CONFIG -= no-pkg-config
+
+CONFIG += c++11
+
 # Define the preprocessor macro to get the application version in our application.
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
-QT       += core gui webkit webkitwidgets
-QT_CONFIG -= no-pkg-config
-
+# why do we need to know the lib extension?
 macx {
-	QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc+
-		EXTSO=dylib
+    QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc+
+    EXTSO=dylib
 } else {
-	win32 {
-		EXTSO=dll
-	} else {
-		EXTSO=so
-	}
+    win32 {
+        EXTSO=dll
+    } else {
+        EXTSO=so
+    }
 }
-CONFIG += c++11
 
+INCLUDEPATH *= .
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-TARGET = iaito
-TEMPLATE = app
-
-INCLUDEPATH += ./
-
-SOURCES += main.cpp\
-        mainwindow.cpp \
+SOURCES += \
+    main.cpp \
+    mainwindow.cpp \
     newfiledialog.cpp \
     optionsdialog.cpp \
     highlighter.cpp \
@@ -77,7 +74,8 @@ SOURCES += main.cpp\
     dialogs/xrefsdialog.cpp \
     hexhighlighter.cpp
 
-HEADERS  += mainwindow.h \
+HEADERS  += \
+    mainwindow.h \
     newfiledialog.h \
     optionsdialog.h \
     highlighter.h \
@@ -112,7 +110,8 @@ HEADERS  += mainwindow.h \
     widgets/banned.h \
     hexhighlighter.h
 
-FORMS    += mainwindow.ui \
+FORMS    += \
+    mainwindow.ui \
     newfiledialog.ui \
     optionsdialog.ui \
     createnewdialog.ui \
@@ -136,22 +135,4 @@ FORMS    += mainwindow.ui \
 RESOURCES += \
     resources.qrc
 
-win32 {
-    DEFINES += _CRT_NONSTDC_NO_DEPRECATE
-    DEFINES += _CRT_SECURE_NO_WARNINGS
-    INCLUDEPATH += "$$PWD/../iaito_win32/include"
-    INCLUDEPATH += "$$PWD/../iaito_win32/radare2/include/libr"
-    !contains(QMAKE_HOST.arch, x86_64) {
-        LIBS += -L"$$PWD/../iaito_win32/radare2/lib32"
-    } else {
-        LIBS += -L"$$PWD/../iaito_win32/radare2/lib64"
-    }
-} else {
-    #INCLUDEPATH += /usr/local/radare2/osx/include/libr
-    INCLUDEPATH += /usr/local/include/libr
-    INCLUDEPATH += /usr/include/libr
-    #LIBS += -L/usr/local/radare2/osx/lib -lr_core -lr_config -lr_cons -lr_io -lr_util -lr_flag -lr_asm -lr_debug -lr_hash -lr_bin -lr_lang -lr_io -lr_anal -lr_parse -lr_bp -lr_egg -lr_reg -lr_search -lr_syscall -lr_socket -lr_fs -lr_magic -lr_crypto
-    LIBS += -L/usr/local/lib
-}
-
-LIBS += -lr_core -lr_config -lr_cons -lr_io -lr_util -lr_flag -lr_asm -lr_debug -lr_hash -lr_bin -lr_lang -lr_io -lr_anal -lr_parse -lr_bp -lr_egg -lr_reg -lr_search -lr_syscall -lr_socket -lr_fs -lr_magic -lr_crypto
+include(lib_radare2.pri)
