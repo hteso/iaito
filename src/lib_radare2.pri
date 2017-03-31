@@ -9,14 +9,21 @@ win32 {
         LIBS += -L"$$PWD/../iaito_win32/radare2/lib64"
     }
 } else {
-    RADARE2_INCLUDE_PATH = $$system(r2 -H | grep INCDIR | sed 's/[^=]*=//')
-    RADARE2_LIB_PATH = $$system(r2 -H | grep LIBDIR | sed 's/[^=]*=//')
+    # check if r2 is available
+    system(r2asdf > /dev/null 2>&1) {
 
-    !isEmpty(RADARE2_INCLUDE_PATH) {
-        INCLUDEPATH *= $$RADARE2_INCLUDE_PATH
-        LIBS *= -L$$RADARE2_LIB_PATH
+        # see https://github.com/hteso/iaito/pull/5#issuecomment-290433796
+        RADARE2_INCLUDE_PATH = $$system(r2 -H | grep INCDIR | sed 's/[^=]*=//')
+        RADARE2_LIB_PATH = $$system(r2 -H | grep LIBDIR | sed 's/[^=]*=//')
+
+        !isEmpty(RADARE2_INCLUDE_PATH) {
+            INCLUDEPATH *= $$RADARE2_INCLUDE_PATH
+            LIBS *= -L$$RADARE2_LIB_PATH
+        } else {
+            message("sorry could not find radare2 lib")
+        }
     } else {
-        message("sorry could not find a radare2 lib")
+        message("r2 not found/in path")
     }
 }
 
