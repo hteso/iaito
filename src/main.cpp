@@ -7,6 +7,8 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    a.setOrganizationName("iaito");
+    a.setApplicationName("iaito");
     a.setApplicationVersion(APP_VERSION);
 
     // Set QString codec to UTF-8
