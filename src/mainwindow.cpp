@@ -149,8 +149,7 @@ MainWindow::MainWindow(QWidget *parent) :
     addToolBar(graphicsBar);
 
     // Fix output panel font
-    QHelpers *help = new QHelpers();
-    help->normalizeFont(ui->consoleOutputTextEdit);
+    qhelpers::normalizeFont(ui->consoleOutputTextEdit);
 
     /*
      * Dock Widgets
