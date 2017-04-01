@@ -20,10 +20,10 @@ win32 {
             INCLUDEPATH *= $$RADARE2_INCLUDE_PATH
             LIBS *= -L$$RADARE2_LIB_PATH
         } else {
-            message("sorry could not find radare2 lib")
+            error("sorry could not find radare2 lib")
         }
     } else {
-        message("r2 not found/in path")
+        error("r2 not found/in path")
     }
 }
 
