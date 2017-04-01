@@ -51,7 +51,7 @@ NewFileDialog::NewFileDialog(QWidget *parent) :
     ui->recentsList->setIconSize(QSize(48, 48));
 
     // Fill list with recent opened files
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
 
     QStringList files = settings.value("recentFileList").toStringList();
 
@@ -121,7 +121,7 @@ void NewFileDialog::on_newFileButton_clicked()
         ui->newFileEdit->setText(fileName);
 
         // Add file to recent file list
-        QSettings settings("iaito", "iaito");
+        QSettings settings;
         QStringList files = settings.value("recentFileList").toStringList();
         files.removeAll(fileName);
         files.prepend(fileName);
@@ -164,7 +164,7 @@ void NewFileDialog::on_actionRemove_item_triggered()
     QVariant data = item->data( Qt::UserRole );
     QString sitem = data.toString();
 
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     QStringList files = settings.value("recentFileList").toStringList();
     files.removeAll(sitem);
     settings.setValue("recentFileList", files);
@@ -185,7 +185,7 @@ void NewFileDialog::on_createButton_clicked()
 void NewFileDialog::on_actionClear_all_triggered()
 {
     // Clear recent file list
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     QStringList files = settings.value("recentFileList").toStringList();
     files.clear();
 
