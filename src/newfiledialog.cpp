@@ -8,6 +8,8 @@
 #include <QMessageBox>
 #include <QDir>
 
+const int NewFileDialog::MaxRecentFiles;
+
 static QColor getColorFor(QString str, int pos) {
     QList<QColor> Colors;
     Colors << QColor(29, 188, 156); // Turquoise
@@ -25,19 +27,18 @@ static QIcon getIconFor(QString str, int pos) {
     // Add to the icon list
     int w = 64;
     int h = 64;
-    QPixmap pixmap(w,h);
-    QPainter pixPaint(&pixmap);
 
-    QBrush brush2(Qt::white);
-    pixPaint.setBrush(brush2);
-    pixPaint.setPen(Qt::white);
+    QPixmap pixmap(w,h);
+    pixmap.fill(Qt::transparent);
+
+    QPainter pixPaint(&pixmap);
+    pixPaint.setPen(Qt::NoPen);
     pixPaint.setRenderHint(QPainter::Antialiasing);
-    pixPaint.fillRect(0,0,w,h,Qt::white);
     pixPaint.setBrush(QBrush(QBrush(getColorFor(str, pos))));
     pixPaint.drawEllipse(1,1,w-2,h-2);
     pixPaint.setPen(Qt::white);
-    pixPaint.setFont(QFont("Verdana",32,1));
-    pixPaint.drawText(10,h/1.4,QString(str).toUpper().mid(0,2));
+    pixPaint.setFont(QFont("Verdana",24,1));
+    pixPaint.drawText(0, 0, w, h-2, Qt::AlignCenter, QString(str).toUpper().mid(0,2));
     return QIcon(pixmap);
 }
 NewFileDialog::NewFileDialog(QWidget *parent) :
@@ -80,11 +81,6 @@ NewFileDialog::NewFileDialog(QWidget *parent) :
     ui->createButton->hide();
 }
 
-QString NewFileDialog::strippedName(const QString &fullFileName)
-{
-    return QFileInfo(fullFileName).fileName();
-}
-
 NewFileDialog::~NewFileDialog()
 {
     delete ui;
@@ -101,8 +97,7 @@ void NewFileDialog::on_loadFileButton_clicked()
     } else {
         // Close dialog and open OptionsDialog
         close();
-        OptionsDialog* o = new OptionsDialog(nullptr);
-        o->setFilename (fname, this->strippedName(fname));
+        OptionsDialog* o = new OptionsDialog(fname);
         o->exec();
     }
 }
@@ -146,8 +141,7 @@ void NewFileDialog::on_recentsList_itemDoubleClicked(QListWidgetItem *item)
     QString sitem = data.toString();
     // Close dialog and open OptionsDialog
     close();
-    OptionsDialog* o = new OptionsDialog(nullptr);
-    o->setFilename (sitem, this->strippedName(sitem));
+    OptionsDialog* o = new OptionsDialog(sitem);
     o->exec();
 }
 
