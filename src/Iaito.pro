@@ -1,6 +1,3 @@
-# DELETE_COMMENTS:
-# No idea what this does exactly
-# ballessay: this tells qmake that this project will be an application ;)
 TEMPLATE = app
 
 TARGET = iaito
@@ -24,16 +21,8 @@ CONFIG += c++11
 # Define the preprocessor macro to get the application version in our application.
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
-# why do we need to know the lib extension?
 macx {
     QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc++
-    EXTSO=dylib
-} else {
-    win32 {
-        EXTSO=dll
-    } else {
-        EXTSO=so
-    }
 }
 
 INCLUDEPATH *= .

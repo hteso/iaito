@@ -27,7 +27,7 @@ win32 {
     }
 }
 
-# are really all of this libs needed?
+
 LIBS += \
     -lr_core \
     -lr_config \
