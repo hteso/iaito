@@ -26,7 +26,7 @@ DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 # why do we need to know the lib extension?
 macx {
-    QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc+
+    QMAKE_CXXFLAGS = -mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc++
     EXTSO=dylib
 } else {
     win32 {
