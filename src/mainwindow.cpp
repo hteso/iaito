@@ -38,30 +38,6 @@
 
 namespace
 {
-    static void adjustColumns(QTreeWidget *tw) {
-        int count = tw->columnCount();
-        for (int i = 0; i != count; ++i) {
-            tw->resizeColumnToContents(i);
-        }
-    }
-
-    static void appendRow(QTreeWidget *tw, const QString &str, const QString &str2=NULL,
-                          const QString &str3=NULL, const QString &str4=NULL, const QString &str5=NULL) {
-        QTreeWidgetItem *tempItem = new QTreeWidgetItem();
-        // Fill dummy hidden column
-        tempItem->setText(0,"0");
-        tempItem->setText(1,str);
-        if (str2!=NULL)
-            tempItem->setText(2, str2);
-        if (str3!=NULL)
-            tempItem->setText(3, str3);
-        if (str4!=NULL)
-            tempItem->setText(4, str4);
-        if (str5!=NULL)
-            tempItem->setText(5, str5);
-        tw->insertTopLevelItem(0, tempItem);
-    }
-
     void registerCustomFonts()
     {
         int ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Anonymous Pro.ttf");
