@@ -68,6 +68,7 @@ MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
     // Hide graph webview scrollbars
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
+    QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
 
     // Add margin to function name line edit
     ui->fcnNameEdit->setTextMargins(5, 0, 0, 0);
@@ -1076,7 +1077,7 @@ void MemoryWidget::on_actionDisasAdd_comment_triggered()
 {
     // Get current offset
     QTextCursor tc = this->disasTextEdit->textCursor();
-    tc.select( QTextCursor::LineUnderCursor );
+    tc.select( QTextCursor::LineUnderCursor);
     QString lastline = tc.selectedText();
     QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
     if (ele.contains("0x")) {
@@ -1090,7 +1091,9 @@ void MemoryWidget::on_actionDisasAdd_comment_triggered()
             // Rename function in r2 core
             this->main->core->setComment(ele, comment);
             // Seek to new renamed function
-            this->main->seek(fcn->name);
+            if (fcn) {
+                this->main->seek(fcn->name);
+            }
             // TODO: Refresh functions tree widget
         }
     }
@@ -1579,7 +1582,9 @@ bool MemoryWidget::eventFilter(QObject *obj, QEvent *event) {
           if (jump != "") {
               if (jump.contains("0x")) {
                   RAnalFunction *fcn = this->main->core->functionAt(jump.toLongLong(0, 16));
-                  this->main->seek(jump, fcn->name);
+                  if (fcn) {
+                      this->main->seek(jump, fcn->name);
+                  }
               } else {
                   this->main->seek(this->main->core->cmd("?v " + jump), jump);
               }
