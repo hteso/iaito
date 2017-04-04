@@ -91,7 +91,7 @@ void NewFileDialog::on_loadFileButton_clicked()
     // Check that there is a file selected
     QString fname = ui->newFileEdit->text();
     QFileInfo checkfile(fname);
-    if (!checkfile.exists() && !checkfile.isFile()) {
+    if (!checkfile.exists() || !checkfile.isFile()) {
         QMessageBox msgBox;
         msgBox.setText("Select a new program or a previous one\nbefore continue");
         msgBox.exec();
