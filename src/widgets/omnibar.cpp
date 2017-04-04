@@ -89,7 +89,7 @@ void Omnibar::clearContents() {
 void Omnibar::on_gotoEntry_returnPressed()
 {
     QString str = this->text();
-    if (str.length()>0)
+    if (str.length()>0) {
         if (str.contains(": ")) {
             if (str.contains("Lock")){
                 this->main->on_actionLock_triggered();
@@ -125,6 +125,8 @@ void Omnibar::on_gotoEntry_returnPressed()
             QString off = this->main->core->cmd("afo " + this->text());
             this->main->seek(off.trimmed(), this->text());
         }
+    }
+
     // check which tab is open? update all tabs? hex, graph?
     //refreshMem( this->gotoEntry->text() );
     this->setText("");

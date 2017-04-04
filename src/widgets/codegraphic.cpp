@@ -13,6 +13,8 @@
 GraphicsBar::GraphicsBar(MainWindow *main, QWidget *parent) :
     QToolBar(main)
 {
+    QNOTUSED(parent);
+
     setObjectName("codeGraphics");
     setWindowTitle("Code bar");
 //    setMovable(false);
@@ -38,9 +40,11 @@ GraphicsBar::GraphicsBar(MainWindow *main, QWidget *parent) :
 }
 
 void GraphicsBar::paintEvent(QPaintEvent *event) {
-        QPainter painter(this);
-        this->fillData();
-    }
+    QNOTUSED(event);
+
+    QPainter painter(this);
+    this->fillData();
+}
 
 void GraphicsBar::fillData() {
 
@@ -59,7 +63,6 @@ void GraphicsBar::fillData() {
 
     // Parse JSON data
     QString jsonData = this->main->core->cmd("p-j");
-    QJsonParseError *err = new QJsonParseError();
     QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
 
     if (doc.isNull()) {
