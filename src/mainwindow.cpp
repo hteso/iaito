@@ -34,30 +34,6 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
-static void adjustColumns(QTreeWidget *tw) {
-    int count = tw->columnCount();
-    for (int i = 0; i != count; ++i) {
-        tw->resizeColumnToContents(i);
-    }
-}
-
-static void appendRow(QTreeWidget *tw, const QString &str, const QString &str2=NULL,
-                      const QString &str3=NULL, const QString &str4=NULL, const QString &str5=NULL) {
-    QTreeWidgetItem *tempItem = new QTreeWidgetItem();
-    // Fill dummy hidden column
-    tempItem->setText(0,"0");
-    tempItem->setText(1,str);
-    if (str2!=NULL)
-        tempItem->setText(2, str2);
-    if (str3!=NULL)
-        tempItem->setText(3, str3);
-    if (str4!=NULL)
-        tempItem->setText(4, str4);
-    if (str5!=NULL)
-        tempItem->setText(5, str5);
-    tw->insertTopLevelItem(0, tempItem);
-}
-
 MainWindow::MainWindow(QWidget *parent, QRCore *kore) :
     QMainWindow(parent),
     core(kore),
@@ -759,26 +735,27 @@ void MainWindow::on_consoleInputLineEdit_returnPressed()
         ui->consoleOutputTextEdit->verticalScrollBar()->setValue(ui->consoleOutputTextEdit->verticalScrollBar()->maximum());
         // Add new command to history
         QCompleter *completer = ui->consoleInputLineEdit->completer();
-        /*
-         * TODO: FIXME: Crashed the fucking app
-         * ballessay: yes this will crash if no completer is set -> nullptr
-         */
-        //QStringListModel *completerModel = (QStringListModel*)(completer->model());
-        //completerModel->setStringList(completerModel->stringList() << input);
+        if ( completer != NULL ) {
+            QStringListModel *completerModel = (QStringListModel*)(completer->model());
+            if ( completerModel != NULL )
+              completerModel->setStringList(completerModel->stringList() << input);
+        }
+
         ui->consoleInputLineEdit->setText("");
-        // TODO: add checkbox to enable/disable updating the whole ui or just update the list widgets, not disasm/hex
-        //this->updateFrames();
     }
 }
 
 void MainWindow::on_showHistoToolButton_clicked()
 {
+    QCompleter *completer = ui->consoleInputLineEdit->completer();
+    if (completer == NULL)
+      return;
+
     if (ui->showHistoToolButton->isChecked()) {
-        QCompleter *completer = ui->consoleInputLineEdit->completer();
         completer->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+        // Uhm... shouldn't it be called always?
         completer->complete();
     } else {
-        QCompleter *completer = ui->consoleInputLineEdit->completer();
         completer->setCompletionMode(QCompleter::PopupCompletion);
     }
 }
