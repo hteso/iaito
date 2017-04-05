@@ -11,10 +11,16 @@
 #include <QScrollBar>
 #include <QClipboard>
 #include <QShortcut>
-#include <QWebFrame>
 #include <QMenu>
 #include <QFont>
 #include <QUrl>
+
+#if defined(USE_WEBENGINE)
+    #include <QWebEnginePage>
+#else
+    #include <QWebFrame>
+#endif
+
 
 MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
     QDockWidget(parent),
@@ -66,9 +72,14 @@ MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
     graph_bar->setVisible(false);
 
     // Hide graph webview scrollbars
+
+#if defined(USE_WEBENGINE)
+    ui->graphWebView->page()->runJavaScript("document.body.style.overflow='hidden';");
+#else
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
+#endif
 
     // Add margin to function name line edit
     ui->fcnNameEdit->setTextMargins(5, 0, 0, 0);
@@ -168,7 +179,11 @@ MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     connect(this->hexASCIIText->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(hexScrolled()));
 
+#if defined(USE_WEBENGINE)
+    connect(ui->graphWebView->page(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
+#else
     connect(ui->graphWebView->page()->mainFrame(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
+#endif
 }
 
 /*
@@ -1384,7 +1399,11 @@ void MemoryWidget::create_graph(QString off) {
     ui->graphWebView->load(QUrl("qrc:/graph/html/graph/index.html#" + off));
     QString port = this->main->core->config("http.port");
 
+#if defined(USE_WEBENGINE)
+    ui->graphWebView->page()->runJavaScript(QString("r2.root=\"http://localhost:" + port + "\""));
+#else
     ui->graphWebView->page()->mainFrame()->evaluateJavaScript(QString("r2.root=\"http://localhost:" + port + "\""));
+#endif
 }
 
 QString MemoryWidget::normalize_addr(QString addr) {
@@ -1729,7 +1748,11 @@ void MemoryWidget::frameLoadFinished(bool ok) {
         QSettings settings;
         if (settings.value("dark").toBool()) {
             QString js = "r2ui.graph_panel.set_theme('dark');";
+#if defined(USE_WEBENGINE)
+            ui->graphWebView->page()->runJavaScript(js, [](const QVariant &result){ qDebug() << result; });
+#else
             qDebug() << ui->graphWebView->page()->mainFrame()->evaluateJavaScript(js);
+#endif
         }
     }
 }
