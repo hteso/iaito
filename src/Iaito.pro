@@ -125,3 +125,37 @@ RESOURCES += \
     resources.qrc
 
 include(lib_radare2.pri)
+
+
+# 'make install' for AppImage
+unix {
+    isEmpty(PREFIX) {
+        PREFIX = /usr/local
+        DEFAULT_PREFIX = true
+    }
+
+    desktop_file = iaito.desktop
+
+    # built-in no need for files atm
+    target.path = $$PREFIX/bin
+
+    share_applications.path = $$PREFIX/share/applications
+    share_applications.files = $$desktop_file
+
+    # TODO:
+    # iaito.png should be copied to $PREFIX/share/icons/$WIDTHx$HEIGHT
+
+    INSTALLS += target share_applications
+
+    # if a custom PREFIX is supplied, we asume it's an AppImage install
+    !defined(DEFAULT_PREFIX, var) {
+        # UGLY work around for the logo name in iaito.desktop
+        # Would be better to have a file called iaito.png in the first place
+        system(cp img/logo-small.png $$OUT_PWD/iaito.png)
+
+        appimage_root.path = /
+        appimage_root.files = $$OUT_PWD/iaito.png $$desktop_file
+
+        INSTALLS += appimage_root
+    }
+}
