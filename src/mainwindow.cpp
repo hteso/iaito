@@ -34,6 +34,20 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
+#include <cassert>
+
+static void registerCustomFonts()
+{
+    int ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Anonymous Pro.ttf");
+    assert(-1 != ret && "unable to register Anonymous Pro.ttf");
+
+    ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Inconsolata-Regular.ttf");
+    assert(-1 != ret && "unable to register Inconsolata-Regular.ttf");
+
+    // do not issue a warning in release
+    Q_UNUSED(ret)
+}
+
 MainWindow::MainWindow(QWidget *parent, QRCore *kore) :
     QMainWindow(parent),
     core(kore),
@@ -45,8 +59,8 @@ MainWindow::MainWindow(QWidget *parent, QRCore *kore) :
 
     doLock = false;
 
-    // Add custom font
-    QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Anonymous Pro.ttf");
+    registerCustomFonts();
+
 
     /*
     * Toolbar
@@ -110,8 +124,7 @@ MainWindow::MainWindow(QWidget *parent, QRCore *kore) :
     addToolBar(graphicsBar);
 
     // Fix output panel font
-    QHelpers *help = new QHelpers();
-    help->normalizeFont(ui->consoleOutputTextEdit);
+    qhelpers::normalizeFont(ui->consoleOutputTextEdit);
 
     /*
      * Dock Widgets
@@ -780,6 +793,7 @@ void MainWindow::seek(const QString& offset, const QString& name) {
     core->seek (offset);
 
     refreshMem(offset);
+    this->memoryDock->disasTextEdit->setFocus();
 }
 
 void MainWindow::setup_mem() {
@@ -808,8 +822,8 @@ void MainWindow::on_backButton_clicked()
     this->core->cmd("s-");
     QString back_offset = this->core->cmd("s=").split(" > ").last().trimmed();
     if (back_offset != "") {
-        this->add_debug_output(back_offset);
-        this->seek(back_offset);
+        QString fcn = this->core->cmdFunctionAt(back_offset);
+        this->seek(this->memoryDock->normalizeAddr(back_offset), fcn);
     }
 }
 

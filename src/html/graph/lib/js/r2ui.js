@@ -3,11 +3,15 @@ var r2ui = {};
 // Colors
 r2ui.colors = {};
 r2ui.load_colors = function () {
-  r2.cmdj("ecj", function(x) {
-    for (var i in x) {
-      r2ui.colors[".ec_" + i.replace("gui.","gui_")] = "rgb(" + String(x[i]) + ")";
-    }
-  });
+
+  // Load colors from r2
+  // r2.cmdj("ecj", function(x) {
+  //   for (var i in x) {
+  //     r2ui.colors[".ec_" + i.replace("gui.","gui_")] = "rgb(" + String(x[i]) + ")";
+  //   }
+  // });
+    
+  // Load colors fro CSS file
   for (var k in document.styleSheets) {
     var mysheet = document.styleSheets[k];
     var myrules = mysheet.cssRules? mysheet.cssRules: mysheet.rules;
@@ -16,6 +20,12 @@ r2ui.load_colors = function () {
       if (myrules[j].selectorText !== undefined && myrules[j].selectorText !== null) {
         if (myrules[j].selectorText.toLowerCase().indexOf(".ec_") === 0) {
           var sel = myrules[j].selectorText;
+          if (myrules[j].style.color !== "")
+            r2ui.colors[sel] = myrules[j].style.color;
+          else if (myrules[j].style.backgroundColor !== "")
+            r2ui.colors[sel] = myrules[j].style.backgroundColor
+          else if (myrules[j].style.borderColor !== "")
+            r2ui.colors[sel] = myrules[j].style.borderColor
         }
       }
     }
@@ -23,6 +33,8 @@ r2ui.load_colors = function () {
 };
 
 // Basic Blocks
+r2ui.current_fcn_offset = null;
+r2ui.graph_panel = null;
 r2ui.basic_blocks = {};
 r2ui.use_sdb = false;
 r2ui.get_fcn_BB = function(fcn_offset, bb_offset) {
@@ -85,8 +97,6 @@ r2ui.update_fcn_BB = function(fcn_offset, bb_offset, bbinfo) {
   }
 };
 
-r2ui.current_fcn_offset = null;
-r2ui.graph = null;
 
 // History
 r2ui.history = [];
@@ -167,7 +177,7 @@ r2ui.seek = function (addr, push, scroll) {
   if (push) r2ui.history_push(addr);
 
   r2.cmd ("ss " + addr, function () {
-    r2ui.graph.seek(addr, scroll);
+    r2ui.graph_panel.seek(addr, scroll);
   });
 };
 
@@ -182,8 +192,8 @@ r2ui.seek_in_graph = function (addr, push) {
 r2ui.seek_prev = function () {
   var addr = r2ui.history.pop ();
   r2.cmd("ss "+addr, function () {
-    r2ui.graph.seek(addr);
-    r2ui.graph.scrollTo(0, 0);
+    r2ui.graph_panel.seek(addr);
+    r2ui.graph_panel.scrollTo(0, 0);
   });
 };
 

@@ -68,17 +68,18 @@ MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
     // Hide graph webview scrollbars
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
+
+    // Debug console
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
 
     // Add margin to function name line edit
     ui->fcnNameEdit->setTextMargins(5, 0, 0, 0);
 
     // Normalize fonts for other OS
-    QHelpers *help = new QHelpers();
-    help->normalizeFont(this->disasTextEdit);
-    help->normalizeEditFont(this->hexOffsetText);
-    help->normalizeEditFont(this->hexHexText);
-    help->normalizeEditFont(this->hexASCIIText);
+    qhelpers::normalizeFont(this->disasTextEdit);
+    qhelpers::normalizeEditFont(this->hexOffsetText);
+    qhelpers::normalizeEditFont(this->hexHexText);
+    qhelpers::normalizeEditFont(this->hexASCIIText);
 
     // Popup menu on Settings toolbutton
     QMenu *memMenu = new QMenu();
@@ -138,26 +139,38 @@ MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
     // X to show hexdump
     QShortcut* hexdump_shortcut = new QShortcut(QKeySequence(Qt::Key_X), this->main);
     connect(hexdump_shortcut, SIGNAL(activated()), this, SLOT(showHexdump()));
+    //hexdump_shortcut->setContext(Qt::WidgetShortcut);
 
     // Space to switch between disassembly and graph
     QShortcut* graph_shortcut = new QShortcut(QKeySequence(Qt::Key_Space), this->main);
     connect(graph_shortcut, SIGNAL(activated()), this, SLOT(cycleViews()));
+    //graph_shortcut->setContext(Qt::WidgetShortcut);
 
     // Semicolon to add comment
     QShortcut* comment_shortcut = new QShortcut(QKeySequence(Qt::Key_Semicolon), ui->disasTextEdit_2);
     connect(comment_shortcut, SIGNAL(activated()), this, SLOT(on_actionDisasAdd_comment_triggered()));
+    comment_shortcut->setContext(Qt::WidgetShortcut);
 
     // N to rename function
     QShortcut* rename_shortcut = new QShortcut(QKeySequence(Qt::Key_N), ui->disasTextEdit_2);
     connect(rename_shortcut, SIGNAL(activated()), this, SLOT(on_actionFunctionsRename_triggered()));
+    rename_shortcut->setContext(Qt::WidgetShortcut);
 
     // R to show XRefs
     QShortcut* xrefs_shortcut = new QShortcut(QKeySequence(Qt::Key_R), ui->disasTextEdit_2);
     connect(xrefs_shortcut, SIGNAL(activated()), this, SLOT(on_actionXRefs_triggered()));
+    xrefs_shortcut->setContext(Qt::WidgetShortcut);
+
+    // Esc to seek back
+    QShortcut* back_shortcut = new QShortcut(QKeySequence(Qt::Key_Escape), ui->disasTextEdit_2);
+    connect(back_shortcut, SIGNAL(activated()), this, SLOT(seek_back()));
+    back_shortcut->setContext(Qt::WidgetShortcut);
 
     // Control Disasm and Hex scroll to add more contents
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     connect(this->hexASCIIText->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(hexScrolled()));
+
+    connect(ui->graphWebView->page()->mainFrame(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
 }
 
 /*
@@ -847,6 +860,10 @@ void MemoryWidget::showDisasContextMenu(const QPoint &pt)
     // Set Disas popup menu
     QMenu *menu = ui->disasTextEdit_2->createStandardContextMenu();
     QTextCursor cur = ui->disasTextEdit_2->textCursor();
+
+    // Move cursor to mouse position to get proper function data
+    cur.setPosition(ui->disasTextEdit_2->cursorForPosition(pt).position(), QTextCursor::MoveAnchor);
+    ui->disasTextEdit_2->setTextCursor(cur);
 
     if (cur.hasSelection()) {
         menu->addSeparator();
@@ -1586,9 +1603,9 @@ bool MemoryWidget::eventFilter(QObject *obj, QEvent *event) {
           jump = this->main->core->getOffsetJump(ele);
           if (jump != "") {
               if (jump.contains("0x")) {
-                  RAnalFunction *fcn = this->main->core->functionAt(jump.toLongLong(0, 16));
-                  if (fcn) {
-                      this->main->seek(jump, fcn->name);
+                  QString fcn = this->main->core->cmdFunctionAt(jump);
+                  if (fcn != "") {
+                      this->main->seek(jump.trimmed(), fcn);
                   }
               } else {
                   this->main->seek(this->main->core->cmd("?v " + jump), jump);
@@ -1704,5 +1721,21 @@ void MemoryWidget::selectHexPreview() {
     //int bits_index = ui->hexBitsComboBox_2->findText(bits);
     if (ui->hexBitsComboBox_2->findText(bits) != -1) {
         ui->hexBitsComboBox_2->setCurrentIndex(ui->hexBitsComboBox_2->findText(bits));
+    }
+}
+
+void MemoryWidget::seek_back() {
+    //this->main->add_debug_output("Back!");
+    this->main->on_backButton_clicked();
+}
+
+void MemoryWidget::frameLoadFinished(bool ok) {
+    //qDebug() << "LOAD FRAME: " << ok;
+    if (ok) {
+        QSettings settings;
+        if (settings.value("dark").toBool()) {
+            QString js = "r2ui.graph_panel.render('dark');";
+            ui->graphWebView->page()->mainFrame()->evaluateJavaScript(js);
+        }
     }
 }
