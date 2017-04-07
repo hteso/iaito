@@ -78,6 +78,8 @@ MemoryWidget::MemoryWidget(MainWindow *main, QWidget *parent) :
 #else
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
     ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
+
+    // Debug console
     QWebSettings::globalSettings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
 #endif
 
@@ -874,6 +876,10 @@ void MemoryWidget::showDisasContextMenu(const QPoint &pt)
     QMenu *menu = ui->disasTextEdit_2->createStandardContextMenu();
     QTextCursor cur = ui->disasTextEdit_2->textCursor();
 
+    // Move cursor to mouse position to get proper function data
+    cur.setPosition(ui->disasTextEdit_2->cursorForPosition(pt).position(), QTextCursor::MoveAnchor);
+    ui->disasTextEdit_2->setTextCursor(cur);
+
     if (cur.hasSelection()) {
         menu->addSeparator();
         menu->addAction(ui->actionSend_to_Notepad);
@@ -1616,9 +1622,9 @@ bool MemoryWidget::eventFilter(QObject *obj, QEvent *event) {
           jump = this->main->core->getOffsetJump(ele);
           if (jump != "") {
               if (jump.contains("0x")) {
-                  RAnalFunction *fcn = this->main->core->functionAt(jump.toLongLong(0, 16));
-                  if (fcn) {
-                      this->main->seek(jump, fcn->name);
+                  QString fcn = this->main->core->cmdFunctionAt(jump);
+                  if (fcn != "") {
+                      this->main->seek(jump.trimmed(), fcn);
                   }
               } else {
                   this->main->seek(this->main->core->cmd("?v " + jump), jump);
@@ -1747,7 +1753,7 @@ void MemoryWidget::frameLoadFinished(bool ok) {
     if (ok) {
         QSettings settings;
         if (settings.value("dark").toBool()) {
-            QString js = "r2ui.graph_panel.set_theme('dark');";
+            QString js = "r2ui.graph_panel.render('dark');";
 #if defined(USE_WEBENGINE)
             ui->graphWebView->page()->runJavaScript(js, [](const QVariant &result){ qDebug() << result; });
 #else
