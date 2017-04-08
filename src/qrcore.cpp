@@ -540,7 +540,7 @@ int QRCore::get_size()
 {
     RBinObject *obj = r_bin_get_object(core->bin);
     //return obj->size;
-    return obj != nullptr? obj->obj_size : 0;
+    return obj != nullptr ? obj->obj_size : 0;
 }
 
 ulong QRCore::get_baddr()
