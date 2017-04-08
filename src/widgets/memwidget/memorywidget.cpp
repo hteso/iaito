@@ -461,9 +461,12 @@ void MemoryWidget::refreshDisasm(QString off = "") {
         QTextCursor tc = this->disasTextEdit->textCursor();
         tc.select( QTextCursor::LineUnderCursor );
         QString lastline = tc.selectedText();
-        QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-        if (ele.contains("0x")) {
-            this->main->core->cmd("s " + ele);
+        QStringList elements = lastline.split(" ", QString::SkipEmptyParts);
+        if (elements.length() > 0) {
+            QString ele = elements[0];
+            if (ele.contains("0x")) {
+                this->main->core->cmd("s " + ele);
+            }
         }
     }
 
