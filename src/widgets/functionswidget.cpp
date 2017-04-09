@@ -39,7 +39,6 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
             this, SLOT(showTitleContextMenu(const QPoint &)));
 
     // Resize eventfilter
-    this->installEventFilter(this);
     ui->functionsTreeWidget->viewport()->installEventFilter(this);
 }
 
@@ -377,4 +376,5 @@ bool FunctionsWidget::eventFilter(QObject *obj, QEvent *event) {
             }
         }
     }
+    return QDockWidget::eventFilter(obj, event);
 }
