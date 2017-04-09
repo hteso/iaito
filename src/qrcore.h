@@ -27,6 +27,19 @@
 #define __alert(x) QMessageBox::question (this, "Alert", QString(x), QMessageBox::Ok)
 #define __question(x) (QMessageBox::Yes==QMessageBox::question (this, "Alert", QString(x), QMessageBox::Yes| QMessageBox::No))
 
+struct RCoreLocked
+{
+    explicit RCoreLocked(RCore* core);
+    RCoreLocked(const RCoreLocked&) = delete;
+    RCoreLocked& operator=(const RCoreLocked&) = delete;
+    RCoreLocked(RCoreLocked&&);
+    ~RCoreLocked();
+    operator RCore*() const;
+    RCore* operator->() const;
+
+private:
+    RCore* core;
+};
 
 class QRCore : public QObject
 {
@@ -86,8 +99,10 @@ public:
     QList<QString> regs;
     void setSettings();
 
+    RCoreLocked core() const;
+
     /* fields */
-    RCore *core;
+
     Sdb *db;
 signals:
 
@@ -97,6 +112,8 @@ private:
     QString default_arch;
     QString default_cpu;
     int default_bits;
+
+    RCore *core_;
 };
 
 #endif // QRCORE_H

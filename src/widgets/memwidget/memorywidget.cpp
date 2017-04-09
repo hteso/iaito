@@ -445,10 +445,10 @@ void MemoryWidget::disasmScrolled()
 }
 
 void MemoryWidget::refreshDisasm(QString off = "") {
-
+    RCoreLocked lcore = this->main->core->core();
     // we must store those ranges somewhere, to handle scroll
-    ut64 addr = this->main->core->core->offset;
-    int length = this->main->core->core->num->value;
+    ut64 addr = lcore->offset;
+    int length = lcore->num->value;
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
@@ -504,6 +504,7 @@ void MemoryWidget::refreshDisasm(QString off = "") {
 
 void MemoryWidget::refreshHexdump(QString where)
 {
+    RCoreLocked lcore = this->main->core->core();
     // Prevent further scroll
     disconnect(this->hexASCIIText->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(hexScrolled()));
 
@@ -513,7 +514,7 @@ void MemoryWidget::refreshHexdump(QString where)
     this->hexASCIIText->clear();
 
     int hexdumpLength;
-    int cols = this->main->core->core->print->cols;
+    int cols = lcore->print->cols;
     int bsize = 128 * cols;
     if (hexdumpBottomOffset < bsize)
     {
@@ -537,7 +538,7 @@ void MemoryWidget::refreshHexdump(QString where)
     //s = this->normalize_addr(this->main->core->cmd("s"));
     QList<QString> ret = this->get_hexdump("");
 
-    hexdumpBottomOffset = this->main->core->core->offset;
+    hexdumpBottomOffset = lcore->offset;
     this->hexOffsetText->setPlainText(ret[0]);
     this->hexHexText->setPlainText(ret[1]);
     this->hexASCIIText->setPlainText(ret[2]);
@@ -550,7 +551,7 @@ void MemoryWidget::refreshHexdump(QString where)
     s = this->normalize_addr(this->main->core->cmd("s"));
     ret = this->get_hexdump("");
 
-    hexdumpBottomOffset = this->main->core->core->offset;
+    hexdumpBottomOffset = lcore->offset;
     this->hexOffsetText->append(ret[0]);
     this->hexHexText->append(ret[1]);
     this->hexASCIIText->append(ret[2]);
@@ -569,11 +570,12 @@ void MemoryWidget::refreshHexdump(QString where)
 }
 
 QList<QString> MemoryWidget::get_hexdump(QString off = "") {
+    RCoreLocked lcore = this->main->core->core();
     QList<QString> ret;
     QString hexdump;
 
     int hexdumpLength;
-    int cols = this->main->core->core->print->cols;
+    int cols = lcore->print->cols;
     int bsize = 128 * cols;
     if (hexdumpBottomOffset < bsize)
     {
@@ -643,6 +645,7 @@ void MemoryWidget::resizeHexdump() {
 
 void MemoryWidget::hexScrolled()
 {
+    RCoreLocked lcore = this->main->core->core();
     QScrollBar *sb = this->hexASCIIText->verticalScrollBar();
 
     if ( sb->value() > sb->maximum() -10 ) {
@@ -676,7 +679,7 @@ void MemoryWidget::hexScrolled()
         //disathis->main->add_debug_output("First Offset/VA: " + firstline);
         //refreshHexdump(1);
 
-        int cols = this->main->core->core->print->cols;
+        int cols = lcore->print->cols;
         // px bsize @ addr
         //int bsize = 128 * cols;
         int bsize = 800;
