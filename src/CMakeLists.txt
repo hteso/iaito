@@ -13,16 +13,16 @@ set(CMAKE_AUTORCC ON)
 
 set(QT_USE_MODULES Core Widgets Gui)
 find_package(Qt5 REQUIRED COMPONENTS ${QT_USE_MODULES})
-if (Qt5_VERSION_MINOR GREATER 7)
+if (Qt5_VERSION_MINOR GREATER 5)
     list(APPEND QT_USE_MODULES WebEngine WebEngineWidgets)
     message("Using QT5 WebEngine instead WebKit")
     add_definitions(-DUSE_WEBENGINE)
     find_package(Qt5 REQUIRED COMPONENTS ${QT_USE_MODULES})
-else (Qt5_VERSION_MINOR GREATER 7)
+else (Qt5_VERSION_MINOR GREATER 5)
     set(CMAKE_AUTOUIC ON)
     list(APPEND QT_USE_MODULES WebKit WebKitWidgets)
     find_package(Qt5 REQUIRED COMPONENTS ${QT_USE_MODULES})
-endif(Qt5_VERSION_MINOR GREATER 7)
+endif(Qt5_VERSION_MINOR GREATER 5)
 
 if(WIN32)
     # use radare2 libraries from submodule on windows
@@ -135,7 +135,7 @@ set(UI_FILES
     widgets/sidebar.ui
     dialogs/xrefsdialog.ui)
 
-if (Qt5_VERSION_MINOR GREATER 7)
+if (Qt5_VERSION_MINOR GREATER 5)
     list(APPEND UI_FILES webengine/widgets/memwidget/memorywidget.ui
         webengine/widgets/dashboard.ui)
 
@@ -158,10 +158,10 @@ if (Qt5_VERSION_MINOR GREATER 7)
 
     set(UI_FILES ${UI_FILES_OUT})
 
-else (Qt5_VERSION_MINOR GREATER 7)
+else (Qt5_VERSION_MINOR GREATER 5)
     list(APPEND UI_FILES widgets/memwidget/memorywidget.ui
         widgets/dashboard.ui)
-endif (Qt5_VERSION_MINOR GREATER 7)
+endif (Qt5_VERSION_MINOR GREATER 5)
 
 
 set(QRC_FILES resources.qrc)
