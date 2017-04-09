@@ -1,6 +1,6 @@
-// DISASSEMBLER PANEL
-var DisasmPanel = function () {
-  this.display = "flat";
+// Graph Panel
+var GraphPanel = function () {
+  this.graph = null;
   this.min = 0;
   this.max = 0;
   this.block = 512;
@@ -12,22 +12,27 @@ var DisasmPanel = function () {
   this.renameOldValue = "";
   this.rbox = null;
   this.panel = $("#disasm_tab")[0];
-  this.scroll_offset = null;
   this.minimap = true;
   this.instructions = [];
-  this.scrolling = false;
+  //this.scroll_offset = null;
+  //this.scrolling = false;
 };
-DisasmPanel.prototype.render = function(mode) {
 
-  // r2ui.seek("$$", false);
-  $("#center_panel").unbind( "click" );
-  $(document).unbind( "keypress" );
-  $(document).unbind( "click" );
-  $(document).unbind( "dblclick" );
-  $("#center_panel").scroll(on_scroll);
+GraphPanel.prototype.init_handlers = function() {
+  // Unbind mouse and key events from document
+  $("#center_panel").unbind("click");
+  $(document).unbind("keypress");
+  $(document).unbind("click");
+  $(document).unbind("dblclick");
+  
+  // Bind custom functions to mouse and key events
+  //$("#center_panel").scroll(on_scroll);
   $(document).keypress(handleKeypress);
   $(document).click(handleClick);
   $(document).dblclick(handleDoubleClick);
+};
+
+GraphPanel.prototype.init_context_menu = function() {
   // Context menu for disas addresses:
   $(document).contextmenu({
       delegate: ".addr",
@@ -148,18 +153,32 @@ DisasmPanel.prototype.render = function(mode) {
           case "comment": do_comment(target); break;
           case "rename": do_rename(target, event); break;
           case "define": do_define(target); break;
-          case "undefine": do_undefine(target); break;
+          //case "undefine": do_undefine(target); break;
           case "randomcolors": do_randomcolors(target); break;
-          case "switchview": do_switchview(target); break;
+          //case "switchview": do_switchview(target); break;
         }
       }
     });
 
-    // Show disasm panel and seek to entrypoint
-    if (mode === "flat")
-      this.display_flat();
-    else if (mode === "graph")
-      this.display_graph();
+};
+
+GraphPanel.prototype.render = function(theme) {
+
+    // Set theme
+    if (theme === "dark") {
+        document.getElementById('dark_theme').disabled  = false;
+        document.getElementById('light_theme').disabled = true;
+    } else if (theme === "light") {
+        document.getElementById('dark_theme').disabled  = true;
+        document.getElementById('light_theme').disabled = false;
+    }
+    r2ui.load_colors();
+
+    // Show graph and seek to entrypoint
+    $("#main_panel").removeClass("ec_gui_background");
+    $("#main_panel").addClass("ec_gui_alt_background");
+    if ($('#minimap').length) $('#minimap')[0].innerHTML = "";
+
     var addr = null;
     if (this.selected_offset !== null) {
       addr = this.selected_offset;
@@ -172,56 +191,42 @@ DisasmPanel.prototype.render = function(mode) {
     } else {
       addr = r2.get_flag_address(addr);
     }
-    scroll_to_address(addr);
+    //scroll_to_address(addr);
 };
 
-DisasmPanel.prototype.seek = function(addr, scroll) {
+GraphPanel.prototype.getElementsUnderCursor = function() {
+    var elements = document.querySelectorAll(':hover');
+    var index;
+    for (index = 0; index < elements.length; ++index) {
+        var element = elements[index];
+
+        // Look for an offset item
+        if (element.className.indexOf("addr") > 0 && element.className.indexOf("ec_offset") > 0) {
+            return "{'offset':'" + element.innerText + "'}";
+        }
+    }
+    return "{}";
+}
+
+GraphPanel.prototype.seek = function(addr, scroll) {
     var panel = this.panel;
     var error = false;
-    if (this.display === "graph") {
-      panel.innerHTML = "";
-      r2.cmd("agj " + addr, function(x) {
+    panel.innerHTML = "";
+    r2.cmd("agj " + addr, function(x) {
         panel.innerHTML = "<div id='minimap'></div></div><div id='canvas' class='canvas enyo-selectable ec_gui_background'></div>";
-        // If render fails (address does not belong to function) then switch to flat view
         if (render_graph(x) === false) error = true;
-      });
-    }
-    if (error) this.display_flat();
-    if (this.display === "flat") {
-      this.min = this.max = 0;
-      r2.get_disasm_before_after(addr, -100, 100, function(x) {
-        panel.innerHTML = "<div id='canvas' class='canvas enyo-selectable ec_gui_background'></div>";
-        r2ui._dis.instructions = x;
-        render_instructions(r2ui._dis.instructions);
-      });
-    }
+    });
+    if (error) console.log("Render failed, probably address does not belong to function");
     this.selected = get_element_by_address(addr);
     this.selected_offset = addr;
 
-    render_history();
     rehighlight_iaddress(addr);
 };
 
-DisasmPanel.prototype.display_graph = function() {
-  this.display = "graph";
-  $("#main_panel").removeClass("ec_gui_background");
-  $("#main_panel").addClass("ec_gui_alt_background");
-  if ($('#minimap').length) $('#minimap')[0].innerHTML = "";
-};
-
-DisasmPanel.prototype.display_flat = function() {
-  this.display = "flat";
-  $("#main_panel").removeClass("ec_gui_alt_background");
-  $("#main_panel").addClass("ec_gui_background");
-  if ($('#minimap').length) $('#minimap')[0].innerHTML = "";
-};
-
-DisasmPanel.prototype.goToAddress = function() {
+GraphPanel.prototype.goToAddress = function() {
   if (this.renaming === null && this.selected !== null && (this.selected.className.indexOf(" addr ") > -1)) {
     var address = get_address_from_class(this.selected);
     if (this.selected.className.indexOf("ec_gui_dataoffset") > -1) {
-      // address is located in not executable memory, switching to hex view
-      r2ui.openpage(address, 2);
       return;
     }
     if (address !== undefined && address !== null) {
@@ -231,58 +236,57 @@ DisasmPanel.prototype.goToAddress = function() {
   }
 };
 
-DisasmPanel.prototype.handleInputTextChange = function() {
+GraphPanel.prototype.handleInputTextChange = function() {
   if (this.renaming !== null && this.rbox.value.length > 0) {
     if ($(this.selected).hasClass('insaddr')) {
-      var old_value = get_offset_flag(r2ui._dis.selected_offset);
+      var old_value = get_offset_flag(r2ui.graph_panel.selected_offset);
       var type = "offsets";
-      r2.cmdj("afij @ " + r2ui._dis.selected_offset, function(x) {
+      r2.cmdj("afij @ " + r2ui.graph_panel.selected_offset, function(x) {
         if (x !== null && x !== undefined) {
-          if ("0x" + x[0].offset.toString(16) === r2ui._dis.selected_offset) {
+          if ("0x" + x[0].offset.toString(16) === r2ui.graph_panel.selected_offset) {
             type = "functions";
           }
         }
       });
-      rename(r2ui._dis.selected_offset, old_value, this.rbox.value, type);
+      rename(r2ui.graph_panel.selected_offset, old_value, this.rbox.value, type);
     } else if ($(this.selected).hasClass('faddr')) {
       if ($(this.selected).hasClass('fvar'))
-        r2.cmd("afvn " + r2ui._dis.renameOldValue + " " + r2ui._dis.rbox.value + " @ " + r2ui._dis.selected_offset, function(x){});
+        r2.cmd("afvn " + r2ui.graph_panel.renameOldValue + " " + r2ui.graph_panel.rbox.value + " @ " + r2ui.graph_panel.selected_offset, function(x){});
       else if ($(this.selected).hasClass('farg'))
-        r2.cmd("afan " + r2ui._dis.renameOldValue + " " + r2ui._dis.rbox.value + " @ " + r2ui._dis.selected_offset, function(x){});
+        r2.cmd("afan " + r2ui.graph_panel.renameOldValue + " " + r2ui.graph_panel.rbox.value + " @ " + r2ui.graph_panel.selected_offset, function(x){});
     } else {
       // TODO, try to recognize other spaces
-      var old_value = r2ui._dis.renameOldValue;
+      var old_value = r2ui.graph_panel.renameOldValue;
       if (old_value.indexOf("0x") === 0) old_value = "";
-      rename(r2ui._dis.selected_offset, old_value, r2ui._dis.rbox.value, "*");
+      rename(r2ui.graph_panel.selected_offset, old_value, r2ui.graph_panel.rbox.value, "*");
     }
     var instruction;
-    if (this.display == "flat") instruction = $(this.selected).closest(".instructionbox").find('.insaddr')[0];
-    if (this.display == "graph") instruction = $(this.selected).closest(".instruction").find('.insaddr')[0];
+    instruction = $(this.selected).closest(".instruction").find('.insaddr')[0];
     this.renaming = null;
     var address = get_address_from_class(instruction);
     update_binary_details();
     r2ui.seek(address, false);
-    scroll_to_address(address);
+    //scroll_to_address(address);
   }
 };
-function scroll_to_address(address, pos) {
-  if (address === undefined || address === null) return;
-  var offset = 0;
-  if (pos == "top") offset = $('#center_panel').height();
-  else if (pos == "bottom") offset = 0;
-  else offset = window.innerHeight / 2;
-  var elements = $(".insaddr.addr_" + address);
-  if (elements === undefined || elements === null) return;
-  if (elements[0] === undefined || elements[0] === null) return;
-  var top = elements[0].documentOffsetTop() - offset;
-  top = Math.max(0,top);
-  $('#center_panel').scrollTo(top, {axis: 'y'});
-  r2ui._dis.scroll_offset = top;
-}
 
+// function scroll_to_address(address, pos) {
+//   if (address === undefined || address === null) return;
+//   var offset = 0;
+//   if (pos == "top") offset = $('#center_panel').height();
+//   else if (pos == "bottom") offset = 0;
+//   else offset = window.innerHeight / 2;
+//   var elements = $(".insaddr.addr_" + address);
+//   if (elements === undefined || elements === null) return;
+//   if (elements[0] === undefined || elements[0] === null) return;
+//   var top = elements[0].documentOffsetTop() - offset;
+//   top = Math.max(0,top);
+//   $('#center_panel').scrollTo(top, {axis: 'y'});
+//   r2ui.graph_panel.scroll_offset = top;
+// }
 
 function handleClick(inEvent) {
-
+  console.log("CLICK!")
   if ($(inEvent.target).hasClass('addr')) {
       if ($(inEvent.target).hasClass('history')) {
         var idx = inEvent.target.className.split(" ").filter(function(x) { return x.substr(0,"history_idx_".length) == "history_idx_"; });
@@ -293,48 +297,35 @@ function handleClick(inEvent) {
       // If instruction address, add address to history
       else if ($(inEvent.target).hasClass('insaddr')) {
         var address = get_address_from_class(inEvent.target);
-        r2ui._dis.selected = inEvent.target;
-        r2ui._dis.selected_offset = address;
+        r2ui.graph_panel.selected = inEvent.target;
+        r2ui.graph_panel.selected_offset = address;
         rehighlight_iaddress(address);
 
         r2ui.history_push(address);
-        render_history();
         var get_more_instructions = false;
         var next_instruction;
         var prev_instruction;
-        if (r2ui._dis.display == "flat") {
-          next_instruction = $(r2ui._dis.selected).closest(".instructionbox").next().find('.insaddr')[0];
-          if ($("#gbox .instructionbox").index( $(r2ui._dis.selected).closest(".instructionbox")[0]) > $("#gbox .instructionbox").length - 10) {
-            get_more_instructions = true;
-            address = get_address_from_class(next_instruction);
-          }
-          prev_instruction = $(r2ui._dis.selected).closest(".instructionbox").prev().find('.insaddr')[0];
-          if ($("#gbox .instructionbox").index( $(r2ui._dis.selected).closest(".instructionbox")[0]) < 10) {
-            get_more_instructions = true;
-            address = get_address_from_class(prev_instruction);
-          }
+
+        next_instruction = $(r2ui.graph_panel.selected).closest(".instruction").next().find('.insaddr')[0];
+        if (next_instruction === undefined || next_instruction === null) {
+        next_instruction = $(r2ui.graph_panel.selected).closest(".basicblock").next().find('.insaddr')[0];
         }
-        if (r2ui._dis.display == "graph") {
-          next_instruction = $(r2ui._dis.selected).closest(".instruction").next().find('.insaddr')[0];
-          if (next_instruction === undefined || next_instruction === null) {
-            next_instruction = $(r2ui._dis.selected).closest(".basicblock").next().find('.insaddr')[0];
-          }
-          prev_instruction = $(r2ui._dis.selected).closest(".instruction").prev().find('.insaddr')[0];
-          if (prev_instruction === undefined || prev_instruction === null) {
-            prev_instruction = $(r2ui._dis.selected).closest(".basicblock").prev().find('.insaddr').last()[0];
-          }
+        prev_instruction = $(r2ui.graph_panel.selected).closest(".instruction").prev().find('.insaddr')[0];
+        if (prev_instruction === undefined || prev_instruction === null) {
+        prev_instruction = $(r2ui.graph_panel.selected).closest(".basicblock").prev().find('.insaddr').last()[0];
         }
+
         if (get_more_instructions) {
           r2ui.seek(address, false);
           rehighlight_iaddress(address);
-          scroll_to_address(address);
+          //scroll_to_address(address);
         }
       }
   } else if ($(inEvent.target).hasClass('fvar') || $(inEvent.target).hasClass('farg')) {
     var eid = null;
     address = get_address_from_class(inEvent.target, "faddr");
-    r2ui._dis.selected = inEvent.target;
-    r2ui._dis.selected_offset = address;
+    r2ui.graph_panel.selected = inEvent.target;
+    r2ui.graph_panel.selected_offset = address;
     var classes = inEvent.target.className.split(' ');
     for (var j in classes) {
       var klass = classes[j];
@@ -345,6 +336,7 @@ function handleClick(inEvent) {
 }
 
 function handleDoubleClick (inEvent) {
+  console.log("DOUBLE CLICK!")
   if ($(inEvent.target).hasClass('addr') && !$(inEvent.target).hasClass('insaddr')) {
     var address = get_address_from_class(inEvent.target);
     do_jumpto(address);
@@ -353,22 +345,16 @@ function handleDoubleClick (inEvent) {
 
 // key handler
 function handleKeypress(inEvent) {
+  console.log("KEYPRESS!")
   var keynum = inEvent.keyCode || inEvent.charCode || inEvent.which || 0;
   var key = String.fromCharCode(keynum);
-  // console.log(key);
 
   if (inEvent.ctrlKey||inEvent.metaKey) return;
   if ($(inEvent.target).prop("tagName") === "INPUT" || $(inEvent.target).prop("tagName") === "TEXTAREA") return;
 
-  if (r2ui._dis.renaming !== null) return;
+  if (r2ui.graph_panel.renaming !== null) return;
 
-  // Spacebar Switch flat and graph views
-  if (key === ' ') {
-    do_switchview();
-    inEvent.preventDefault();
-  }
-
-  if (key === 'm' && r2ui._dis.display == "graph") toggle_minimap();
+  if (key === 'm') toggle_minimap();
 
   // h Seek to previous address in history
   if (key === 'h') do_jumpto(r2ui.history_prev());
@@ -379,66 +365,54 @@ function handleKeypress(inEvent) {
   // j Seek to next Instruction
   if (key === 'j') {
     var get_more_instructions = false;
-    if ($(r2ui._dis.selected).hasClass("insaddr")) {
+    if ($(r2ui.graph_panel.selected).hasClass("insaddr")) {
       var next_instruction;
-      if (r2ui._dis.display == "flat") {
-        next_instruction = $(r2ui._dis.selected).closest(".instructionbox").next().find('.insaddr')[0];
-        if ($("#gbox .instructionbox").index( $(r2ui._dis.selected).closest(".instructionbox")[0]) > $("#gbox .instructionbox").length - 10) get_more_instructions = true;
-      }
-      if (r2ui._dis.display == "graph") {
-        next_instruction = $(r2ui._dis.selected).closest(".instruction").next().find('.insaddr')[0];
-        if (next_instruction === undefined || next_instruction === null) {
-          next_instruction = $(r2ui._dis.selected).closest(".basicblock").next().find('.insaddr')[0];
-        }
+      
+      next_instruction = $(r2ui.graph_panel.selected).closest(".instruction").next().find('.insaddr')[0];
+      if (next_instruction === undefined || next_instruction === null) {
+        next_instruction = $(r2ui.graph_panel.selected).closest(".basicblock").next().find('.insaddr')[0];
       }
 
-      // if (next_instruction === null || next_instruction === undefined) return;
       var address = get_address_from_class(next_instruction);
       if (get_more_instructions) {
         r2ui.seek(address, false);
       } else {
         r2ui.history_push(address);
-        render_history();
-        r2ui._dis.selected = next_instruction;
-        r2ui._dis.selected_offset = address;
+        r2ui.graph_panel.selected = next_instruction;
+        r2ui.graph_panel.selected_offset = address;
       }
       rehighlight_iaddress(address);
-      scroll_to_address(address);
+      //scroll_to_address(address);
     }
   }
   // k Seek to previous instruction
   if (key === 'k') {
     var get_more_instructions = false;
-    if ($(r2ui._dis.selected).hasClass("insaddr")) {
+    if ($(r2ui.graph_panel.selected).hasClass("insaddr")) {
       var prev_instruction;
-      if (r2ui._dis.display == "flat") {
-        prev_instruction = $(r2ui._dis.selected).closest(".instructionbox").prev().find('.insaddr')[0];
-        if ($("#gbox .instructionbox").index( $(r2ui._dis.selected).closest(".instructionbox")[0]) < 10) get_more_instructions = true;
+
+      var prev_instruction = $(r2ui.graph_panel.selected).closest(".instruction").prev().find('.insaddr')[0];
+      if (prev_instruction === undefined || prev_instruction === null) {
+        prev_instruction = $(r2ui.graph_panel.selected).closest(".basicblock").prev().find('.insaddr').last()[0];
       }
-      if (r2ui._dis.display == "graph") {
-        var prev_instruction = $(r2ui._dis.selected).closest(".instruction").prev().find('.insaddr')[0];
-        if (prev_instruction === undefined || prev_instruction === null) {
-          prev_instruction = $(r2ui._dis.selected).closest(".basicblock").prev().find('.insaddr').last()[0];
-        }
-      }
+
       var address = get_address_from_class(prev_instruction);
       if (get_more_instructions) {
         r2ui.seek(address, false);
       } else {
         r2ui.history_push(address);
-        render_history();
-        r2ui._dis.selected = prev_instruction;
-        r2ui._dis.selected_offset = address;
+        r2ui.graph_panel.selected = prev_instruction;
+        r2ui.graph_panel.selected_offset = address;
       }
       rehighlight_iaddress(address);
-      scroll_to_address(address);
+      //scroll_to_address(address);
     }
   }
   // c Define function
-  if (key === 'c') do_define(r2ui._dis.selected);
+  if (key === 'c') do_define(r2ui.graph_panel.selected);
 
   // u Clear function metadata
-  if (key === 'u') do_undefine(r2ui._dis.selected);
+  if (key === 'u') do_undefine(r2ui.graph_panel.selected);
 
   // g Go to address
   if (key === 'g') {
@@ -447,54 +421,43 @@ function handleKeypress(inEvent) {
   }
 
   // ; Add comment
-  if (key === ';') do_comment(r2ui._dis.selected);
+  if (key === ';') do_comment(r2ui.graph_panel.selected);
 
   // n Rename
-  if (key === 'n') do_rename(r2ui._dis.selected, inEvent);
+  if (key === 'n') do_rename(r2ui.graph_panel.selected, inEvent);
 
   if (key === 'R') do_randomcolors();
 
   // esc
   if (keynum === 27) {
     // Esc belongs to renaming
-    if(r2ui._dis.renaming !== null) {
-      r2ui._dis.renaming.innerHTML = r2ui._dis.renameOldValue;
-      r2ui._dis.renaming = null;
+    if(r2ui.graph_panel.renaming !== null) {
+      r2ui.graph_panel.renaming.innerHTML = r2ui.graph_panel.renameOldValue;
+      r2ui.graph_panel.renaming = null;
     } else {
       // go back in history
       var addr = r2ui.history_prev();
       if (addr !== undefined && addr !== null) r2ui.seek(addr, false);
-      scroll_to_address(addr);
+      //scroll_to_address(addr);
     }
   }
   // enter
   if (keynum === 13) {
-    r2ui._dis.goToAddress();
+    r2ui.graph_panel.goToAddress();
   }
-}
-
-function do_switchview() {
-    var address = get_address_from_class(r2ui._dis.selected);
-    if (address !== undefined && address !== null) {
-      if (r2ui._dis.display === "flat") r2ui._dis.display_graph();
-      else if (r2ui._dis.display === "graph") r2ui._dis.display_flat();
-      r2ui.seek(address, true);
-      scroll_to_address(address);
-    }
 }
 
 function do_jumpto(address) {
   var element = $('.insaddr.addr_' + address);
   if (element.length > 0) {
     r2ui.history_push(address);
-    r2ui._dis.selected = element[0];
-    r2ui._dis.selected_offset = address;
-    render_history();
+    r2ui.graph_panel.selected = element[0];
+    r2ui.graph_panel.selected_offset = address;
   } else {
     r2ui.seek(address, true);
   }
   rehighlight_iaddress(address);
-  scroll_to_address(address);
+  //scroll_to_address(address);
 }
 
 function do_rename(element, inEvent) {
@@ -511,49 +474,49 @@ function do_rename(element, inEvent) {
      var new_name = prompt('New name', old_value);
      if (new_name !== null) {
        rename(address, old_value, new_name, space);
-       store_scroll_offset();
+       //store_scroll_offset();
        r2ui.seek("$$", false);
-       scroll_to_last_offset();
+       //scroll_to_last_offset();
      }
-  } else if (r2ui._dis.renaming === null && element !== null && $(element).hasClass("addr")) {
-    r2ui._dis.selected = element;
-    r2ui._dis.selected_offset = address;
-    r2ui._dis.renaming = element;
-    r2ui._dis.renameOldValue = element.innerHTML;
-    r2ui._dis.rbox = document.createElement('input');
-    r2ui._dis.rbox.setAttribute("type", "text");
-    r2ui._dis.rbox.setAttribute("id", "rename");
-    r2ui._dis.rbox.setAttribute("style", "border-width: 0;padding: 0;");
-    r2ui._dis.rbox.setAttribute("onChange", "handleInputTextChange()");
+  } else if (r2ui.graph_panel.renaming === null && element !== null && $(element).hasClass("addr")) {
+    r2ui.graph_panel.selected = element;
+    r2ui.graph_panel.selected_offset = address;
+    r2ui.graph_panel.renaming = element;
+    r2ui.graph_panel.renameOldValue = element.innerHTML;
+    r2ui.graph_panel.rbox = document.createElement('input');
+    r2ui.graph_panel.rbox.setAttribute("type", "text");
+    r2ui.graph_panel.rbox.setAttribute("id", "rename");
+    r2ui.graph_panel.rbox.setAttribute("style", "border-width: 0;padding: 0;");
+    r2ui.graph_panel.rbox.setAttribute("onChange", "handleInputTextChange()");
     if ($(element).hasClass('insaddr')) {
       var value = get_offset_flag(address);
-      r2ui._dis.rbox.setAttribute("value",value);
-      r2ui._dis.rbox.setSelectionRange(value.length, value.length);
+      r2ui.graph_panel.rbox.setAttribute("value",value);
+      r2ui.graph_panel.rbox.setSelectionRange(value.length, value.length);
     } else {
-      r2ui._dis.rbox.setAttribute("value", r2ui._dis.renameOldValue);
-      r2ui._dis.rbox.setSelectionRange(r2ui._dis.renameOldValue.length, r2ui._dis.renameOldValue.length);
+      r2ui.graph_panel.rbox.setAttribute("value", r2ui.graph_panel.renameOldValue);
+      r2ui.graph_panel.rbox.setSelectionRange(r2ui.graph_panel.renameOldValue.length, r2ui.graph_panel.renameOldValue.length);
     }
-    r2ui._dis.renaming.innerHTML = "";
-    r2ui._dis.renaming.appendChild(r2ui._dis.rbox);
-    setTimeout('r2ui._dis.rbox.focus();', 200);
+    r2ui.graph_panel.renaming.innerHTML = "";
+    r2ui.graph_panel.renaming.appendChild(r2ui.graph_panel.rbox);
+    setTimeout('r2ui.graph_panel.rbox.focus();', 200);
     inEvent.returnValue=false;
     inEvent.preventDefault();
-  } else if (r2ui._dis.renaming === null && element !== null && $(element).hasClass("faddr")) {
+  } else if (r2ui.graph_panel.renaming === null && element !== null && $(element).hasClass("faddr")) {
     address = get_address_from_class(element, "faddr");
-    r2ui._dis.selected = element;
-    r2ui._dis.selected_offset = address;
-    r2ui._dis.renaming = element;
-    r2ui._dis.renameOldValue = element.innerText;
-    r2ui._dis.rbox = document.createElement('input');
-    r2ui._dis.rbox.setAttribute("type", "text");
-    r2ui._dis.rbox.setAttribute("id", "rename");
-    r2ui._dis.rbox.setAttribute("style", "border-width: 0;padding: 0;");
-    r2ui._dis.rbox.setAttribute("onChange", "handleInputTextChange()");
-    r2ui._dis.rbox.setAttribute("value", r2ui._dis.renameOldValue);
-    r2ui._dis.rbox.setSelectionRange(r2ui._dis.renameOldValue.length, r2ui._dis.renameOldValue.length);
-    r2ui._dis.renaming.innerHTML = "";
-    r2ui._dis.renaming.appendChild(r2ui._dis.rbox);
-    setTimeout('r2ui._dis.rbox.focus();', 200);
+    r2ui.graph_panel.selected = element;
+    r2ui.graph_panel.selected_offset = address;
+    r2ui.graph_panel.renaming = element;
+    r2ui.graph_panel.renameOldValue = element.innerText;
+    r2ui.graph_panel.rbox = document.createElement('input');
+    r2ui.graph_panel.rbox.setAttribute("type", "text");
+    r2ui.graph_panel.rbox.setAttribute("id", "rename");
+    r2ui.graph_panel.rbox.setAttribute("style", "border-width: 0;padding: 0;");
+    r2ui.graph_panel.rbox.setAttribute("onChange", "handleInputTextChange()");
+    r2ui.graph_panel.rbox.setAttribute("value", r2ui.graph_panel.renameOldValue);
+    r2ui.graph_panel.rbox.setSelectionRange(r2ui.graph_panel.renameOldValue.length, r2ui.graph_panel.renameOldValue.length);
+    r2ui.graph_panel.renaming.innerHTML = "";
+    r2ui.graph_panel.renaming.appendChild(r2ui.graph_panel.rbox);
+    setTimeout('r2ui.graph_panel.rbox.focus();', 200);
     inEvent.returnValue=false;
     inEvent.preventDefault();
   }
@@ -566,7 +529,7 @@ function do_comment(element) {
   if (c !== null) {
     r2.cmd('CC ' + c  + " @ " + address);
     r2ui.seek(address, false);
-    scroll_to_address(address);
+    //scroll_to_address(address);
   }
 }
 
@@ -575,9 +538,8 @@ function do_undefine(element) {
   r2.cmd("af-");
   r2.update_flags();
   update_binary_details();
-  if (r2ui._dis.display == "graph") r2ui._dis.display_flat();
   r2ui.seek(address, false);
-  scroll_to_address(address);
+  //scroll_to_address(address);
 }
 
 function do_define(element) {
@@ -588,6 +550,6 @@ function do_define(element) {
     r2.update_flags();
     update_binary_details();
     r2ui.seek(address, false);
-    scroll_to_address(address);
+    //scroll_to_address(address);
   }
 }

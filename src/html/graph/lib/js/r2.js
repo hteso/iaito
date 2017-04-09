@@ -65,7 +65,7 @@ try {
   }
 } catch ( e ) {}
 
-r2.root = "http://localhost:14170"; // prefix path
+r2.root = "http://localhost:9090"; // prefix path
 
 /* helpers */
 function dump(obj) {
@@ -225,10 +225,7 @@ r2.load_settings = function() {
   r2.cmd ("e asm.xrefs", function(x) {r2.settings['asm.xrefs'] = toBoolean(x.trim());});
   r2.cmd ("e asm.cmtright", function(x) {r2.settings['asm.cmtright'] = toBoolean(x.trim());});
   r2.cmd ("e asm.pseudo", function(x) {r2.settings['asm.pseudo'] = toBoolean(x.trim());});
-  // console.log("Loading settings from r2");
-  // console.log(r2.settings);
 }
-
 
 r2.flags = {};
 
@@ -481,9 +478,6 @@ r2.getTextLogger = function(obj) {
       obj.refresh (function() {
         //obj.clear ();
       });
-      if (r2ui.selected_panel === "Logs")
-        setTimeout (to, n * 1000);
-      else console.log("Not in logs :(");
       return true;
     }
     obj.interval = setTimeout (to, n * 1000);

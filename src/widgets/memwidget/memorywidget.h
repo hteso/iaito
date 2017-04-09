@@ -72,6 +72,8 @@ public slots:
 
     QString normalize_addr(QString addr);
 
+    QString normalizeAddr(QString addr);
+
     void setFcnName(QString addr);
 
     void setMiniGraph(QString at);
@@ -81,6 +83,8 @@ public slots:
     void highlightDisasms();
 
     void selectHexPreview();
+
+    void frameLoadFinished(bool ok);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -162,8 +166,8 @@ private slots:
     void on_copyMD5_clicked();
     void on_copySHA1_clicked();
     void on_simpleGrapgToolButton_clicked();
-    QString normalizeAddr(QString addr);
     void on_opcodeDescButton_clicked();
+    void seek_back();
 };
 
 #endif // MEMORYWIDGET_H

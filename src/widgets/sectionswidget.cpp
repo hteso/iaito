@@ -110,5 +110,5 @@ bool SectionsWidget::eventFilter(QObject *obj, QEvent *event) {
             }
         }
     }
-    return false; //allow the event to be handled further
+    return QSplitter::eventFilter(obj, event);
 }

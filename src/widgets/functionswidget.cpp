@@ -362,7 +362,7 @@ void FunctionsWidget::on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *
 
 bool FunctionsWidget::eventFilter(QObject *obj, QEvent *event) {
     if (this->main->responsive) {
-        if (event->type() == QEvent::Resize && obj == this && this->isVisible()) {
+        if (event->type() == QEvent::Resize && obj == this && this->isVisible() == true) {
             QResizeEvent *resizeEvent = static_cast<QResizeEvent*>(event);
             //qDebug("Dock Resized (New Size) - Width: %d Height: %d",
             //       resizeEvent->size().width(),
@@ -376,5 +376,5 @@ bool FunctionsWidget::eventFilter(QObject *obj, QEvent *event) {
             }
         }
     }
-    return false; //allow the event to be handled further
+    return QDockWidget::eventFilter(obj, event);
 }

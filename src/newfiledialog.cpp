@@ -8,6 +8,8 @@
 #include <QMessageBox>
 #include <QDir>
 
+const int NewFileDialog::MaxRecentFiles;
+
 static QColor getColorFor(QString str, int pos) {
     QList<QColor> Colors;
     Colors << QColor(29, 188, 156); // Turquoise
@@ -25,19 +27,18 @@ static QIcon getIconFor(QString str, int pos) {
     // Add to the icon list
     int w = 64;
     int h = 64;
-    QPixmap pixmap(w,h);
-    QPainter pixPaint(&pixmap);
 
-    QBrush brush2(Qt::white);
-    pixPaint.setBrush(brush2);
-    pixPaint.setPen(Qt::white);
+    QPixmap pixmap(w,h);
+    pixmap.fill(Qt::transparent);
+
+    QPainter pixPaint(&pixmap);
+    pixPaint.setPen(Qt::NoPen);
     pixPaint.setRenderHint(QPainter::Antialiasing);
-    pixPaint.fillRect(0,0,w,h,Qt::white);
     pixPaint.setBrush(QBrush(QBrush(getColorFor(str, pos))));
     pixPaint.drawEllipse(1,1,w-2,h-2);
     pixPaint.setPen(Qt::white);
-    pixPaint.setFont(QFont("Verdana",32,1));
-    pixPaint.drawText(10,h/1.4,QString(str).toUpper().mid(0,2));
+    pixPaint.setFont(QFont("Verdana",24,1));
+    pixPaint.drawText(0, 0, w, h-2, Qt::AlignCenter, QString(str).toUpper().mid(0,2));
     return QIcon(pixmap);
 }
 NewFileDialog::NewFileDialog(QWidget *parent) :
@@ -51,7 +52,7 @@ NewFileDialog::NewFileDialog(QWidget *parent) :
     ui->recentsList->setIconSize(QSize(48, 48));
 
     // Fill list with recent opened files
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
 
     QStringList files = settings.value("recentFileList").toStringList();
 
@@ -80,11 +81,6 @@ NewFileDialog::NewFileDialog(QWidget *parent) :
     ui->createButton->hide();
 }
 
-QString NewFileDialog::strippedName(const QString &fullFileName)
-{
-    return QFileInfo(fullFileName).fileName();
-}
-
 NewFileDialog::~NewFileDialog()
 {
     delete ui;
@@ -94,15 +90,25 @@ void NewFileDialog::on_loadFileButton_clicked()
 {
     // Check that there is a file selected
     QString fname = ui->newFileEdit->text();
-    if (fname.isEmpty()) {
+    QFileInfo checkfile(fname);
+    if (!checkfile.exists() || !checkfile.isFile()) {
         QMessageBox msgBox;
         msgBox.setText("Select a new program or a previous one\nbefore continue");
         msgBox.exec();
     } else {
+        // Add file to recent file list
+        QSettings settings;
+        QStringList files = settings.value("recentFileList").toStringList();
+        files.removeAll(fname);
+        files.prepend(fname);
+        while (files.size() > MaxRecentFiles)
+            files.removeLast();
+
+        settings.setValue("recentFileList", files);
+                
         // Close dialog and open OptionsDialog
         close();
-        OptionsDialog* o = new OptionsDialog(nullptr);
-        o->setFilename (fname, this->strippedName(fname));
+        OptionsDialog* o = new OptionsDialog(fname);
         o->exec();
     }
 }
@@ -119,16 +125,7 @@ void NewFileDialog::on_newFileButton_clicked()
 
     if (!fileName.isEmpty()) {
         ui->newFileEdit->setText(fileName);
-
-        // Add file to recent file list
-        QSettings settings("iaito", "iaito");
-        QStringList files = settings.value("recentFileList").toStringList();
-        files.removeAll(fileName);
-        files.prepend(fileName);
-        while (files.size() > MaxRecentFiles)
-            files.removeLast();
-
-        settings.setValue("recentFileList", files);
+        ui->loadFileButton->setFocus();        
     }
 }
 
@@ -146,8 +143,7 @@ void NewFileDialog::on_recentsList_itemDoubleClicked(QListWidgetItem *item)
     QString sitem = data.toString();
     // Close dialog and open OptionsDialog
     close();
-    OptionsDialog* o = new OptionsDialog(nullptr);
-    o->setFilename (sitem, this->strippedName(sitem));
+    OptionsDialog* o = new OptionsDialog(sitem);
     o->exec();
 }
 
@@ -164,7 +160,7 @@ void NewFileDialog::on_actionRemove_item_triggered()
     QVariant data = item->data( Qt::UserRole );
     QString sitem = data.toString();
 
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     QStringList files = settings.value("recentFileList").toStringList();
     files.removeAll(sitem);
     settings.setValue("recentFileList", files);
@@ -178,14 +174,14 @@ void NewFileDialog::on_createButton_clicked()
 {
     // Close dialog and open create new file dialog
     close();
-    createNewDialog* n = new createNewDialog(nullptr);
+    createNewDialog* n = new createNewDialog(this);
     n->exec();
 }
 
 void NewFileDialog::on_actionClear_all_triggered()
 {
     // Clear recent file list
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     QStringList files = settings.value("recentFileList").toStringList();
     files.clear();
 

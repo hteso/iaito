@@ -15,6 +15,15 @@ QRCore::QRCore(QObject *parent) :
     // Otherwise r2 may ask the user for input and Iaito would freeze
     config("scr.interactive","false");
 
+    // Used by the HTML5 graph
+    config("http.cors","true");
+    config("http.sandbox", "false");
+    //config("http.port", "14170");
+
+    // Temporary fixes
+    //config("http.root","/usr/local/share/radare2/last/www");
+    //config("http.root","/usr/local/radare2/osx/share/radare2/1.1.0-git/www");
+
     this->db = sdb_new (NULL, NULL, 0); // WTF NOES
 }
 
@@ -502,14 +511,14 @@ void QRCore::setDefaultCPU() {
 
 QString QRCore::assemble(const QString &code) {
     RAsmCode *ac = r_asm_massemble (core->assembler, code.toUtf8().constData());
-    QString hex = QString(ac->buf_hex);
+    QString hex(ac != nullptr ? ac->buf_hex : "");
     r_asm_code_free (ac);
     return hex;
 }
 
 QString QRCore::disassemble(const QString &hex) {
     RAsmCode *ac = r_asm_mdisassemble_hexstr(core->assembler, hex.toUtf8().constData());
-    QString code = QString (ac->buf_asm);
+    QString code = QString (ac != nullptr ? ac->buf_asm : "");
     r_asm_code_free (ac);
     return code;
 }
@@ -531,7 +540,7 @@ int QRCore::get_size()
 {
     RBinObject *obj = r_bin_get_object(core->bin);
     //return obj->size;
-    return obj->obj_size;
+    return obj != nullptr ? obj->obj_size : 0;
 }
 
 ulong QRCore::get_baddr()
@@ -679,7 +688,7 @@ void QRCore::setSettings() {
     // Used by the HTML5 graph
     config("http.cors","true");
     config("http.sandbox", "false");
-    config("http.port", "14170");
+    //config("http.port", "14170");
 
     // Temporary fixes
     //config("http.root","/usr/local/share/radare2/last/www");

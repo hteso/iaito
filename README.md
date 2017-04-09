@@ -1,4 +1,4 @@
-# Iaitō
+# Iaitō [![Build Status](https://travis-ci.org/hteso/iaito.svg?branch=master)](https://travis-ci.org/hteso/iaito)
 
 > The GUI that ~~radare2~~ humans deserve
 
@@ -10,7 +10,7 @@ A Qt and C++ GUI for radare2 reverse engineering framework
 
 ## Disclaimer
 
-Iaitō is not aimed to the already existing radare2 user, it is focused on those whose are not yet radare2 users because of the learning curve, because they don't like CLI applications or because of the difficulty/inestability of radare2.
+Iaitō is not aimed at existing radare2 users, it is focused on those whose are not yet radare2 users because of the learning curve, they don't like CLI applications or the difficulty/instability of radare2.
 
 **IMPORTANT:** the current status is **highly unstable**, it is an alpha version aimed for developers. Users please wait for the first stable release with installers.
 

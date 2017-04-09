@@ -5,20 +5,24 @@
 
 #include "mainwindow.h"
 
-SideBar::SideBar(MainWindow *main, QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::SideBar)
+SideBar::SideBar(MainWindow *main) :
+    QWidget(main),
+    ui(new Ui::SideBar),
+    // Radare core found in:
+    main(main)
 {
     ui->setupUi(this);
 
-    // Radare core found in:
-    this->main = main;
-
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     if (settings.value("responsive").toBool()) {
         ui->respButton->setChecked(true);
     } else {
         ui->respButton->setChecked(false);
+    }
+    if (settings.value("dark").toBool()) {
+        ui->themesButton->setChecked(true);
+    } else {
+        ui->themesButton->setChecked(false);
     }
 }
 
@@ -44,24 +48,7 @@ void SideBar::on_consoleButton_clicked()
 
 void SideBar::on_webServerButton_clicked()
 {
-    static WebServerThread thread;
-    if (ui->webServerButton->isChecked()) {
-        // Start web server
-        thread.core = this->main->core;
-        thread.start();
-        QThread::sleep (1);
-        if (this->main->core->core->http_up==R_FALSE) {
-            eprintf ("FAILED TO LAUNCH\n");
-        }
-        // Open web interface on default browser
-        //QString link = "http://localhost:9090/";
-        //QDesktopServices::openUrl(QUrl(link));
-    } else {
-        this->main->core->core->http_up= R_FALSE;
-        // call something to kill the webserver!!
-        thread.exit(0);
-        // Stop web server
-    }
+    main->setWebServerState(ui->webServerButton->isChecked());
 }
 
 void SideBar::on_lockButton_clicked()
@@ -102,7 +89,7 @@ void SideBar::on_asm2hex_clicked()
 
 void SideBar::on_hex2asm_clicked()
 {
-    ui->asmInput->setPlainText(main->core->assemble(ui->hexInput->toPlainText()));
+    ui->asmInput->setPlainText(main->core->disassemble(ui->hexInput->toPlainText()));
 }
 
 void SideBar::on_respButton_toggled(bool checked)

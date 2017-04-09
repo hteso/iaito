@@ -6,9 +6,10 @@
 #include <QSettings>
 #include <QFileInfo>
 
-OptionsDialog::OptionsDialog(QWidget *parent):
+OptionsDialog::OptionsDialog(QString filename, QWidget *parent):
     QDialog(parent),
-    ui(new Ui::OptionsDialog)
+    ui(new Ui::OptionsDialog),
+    analThread(this)
 {
     this->core = new QRCore();
     this->anal_level = 0;
@@ -27,7 +28,7 @@ OptionsDialog::OptionsDialog(QWidget *parent):
     ui->processorComboBox->insertItems(1, plugins);
 
     // Restore settings
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     ui->bytesCheckBox->setChecked(settings.value("bytes").toBool());
     ui->attCheckBox->setChecked(settings.value("syntax").toBool());
     ui->descriptionCheckBox->setChecked(settings.value("describe").toBool());
@@ -39,6 +40,10 @@ OptionsDialog::OptionsDialog(QWidget *parent):
 
     // Add this so the dialog resizes when widgets are shown/hidden
     //this->layout()->setSizeConstraint(QLayout::SetFixedSize);
+
+    connect(&analThread, SIGNAL(finished()), this, SLOT(anal_finished()));
+    
+    setFilename(filename);
 }
 
 OptionsDialog::~OptionsDialog()
@@ -52,6 +57,11 @@ void OptionsDialog::setFilename(QString fn, QString shortfn) {
     //qDebug() << QFileInfo(fn).fileName();
     ui->programLineEdit->setText(fn);
     this->core->tryFile (fn, 1);
+}
+
+void OptionsDialog::setFilename(QString fn)
+{
+    setFilename(fn, QFileInfo(fn).fileName());
 }
 
 void OptionsDialog::on_closeButton_clicked()
@@ -74,8 +84,7 @@ void OptionsDialog::on_okButton_clicked()
     //ui->progressBar->setValue(5);
 
     // Close dialog and open OptionsDialog
-    this->w = new MainWindow(nullptr);
-    this->w->core = this->core;
+    this->w = new MainWindow(0, this->core);
 
     // Fill asm plugins in hexdump combo
     this->w->memoryDock->fillPlugins(this->asm_plugins);
@@ -90,7 +99,7 @@ void OptionsDialog::on_okButton_clicked()
     }
 
     // Save options in settings
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
 
     // Show asm bytes
     if (ui->bytesCheckBox->isChecked()) {
@@ -169,18 +178,14 @@ void OptionsDialog::on_okButton_clicked()
     ui->statusLabel->setText("Analysis in progress");
 
     // Threads stuff
-    // create an instance of MyThread
-    this->analThread = new AnalThread(w);
-
     // connect signal/slot
-    connect(analThread, SIGNAL(finished()), this, SLOT(anal_finished()));
-    //analThread->level = anal_level;
+
+    int level = 0;
     if (anal_level == true) {
-        analThread->level = ui->analSlider->value();
-    } else {
-        analThread->level = 0;
+        level = ui->analSlider->value();
     }
-    analThread->start();
+
+    analThread.start(core, level);
 }
 
 void OptionsDialog::anal_finished()
@@ -238,7 +243,7 @@ void OptionsDialog::on_cancelButton_clicked()
     this->core = NULL;
     // Close dialog and open OptionsDialog
     close();
-    NewFileDialog* n = new NewFileDialog(nullptr);
+    NewFileDialog* n = new NewFileDialog(this);
     n->show();
 }
 

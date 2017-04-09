@@ -34,40 +34,37 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
-static void adjustColumns(QTreeWidget *tw) {
-    int count = tw->columnCount();
-    for (int i = 0; i != count; ++i) {
-        tw->resizeColumnToContents(i);
+#include <cassert>
+
+namespace
+{
+    void registerCustomFonts()
+    {
+        int ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Anonymous Pro.ttf");
+        assert(-1 != ret && "unable to register Anonymous Pro.ttf");
+
+        ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Inconsolata-Regular.ttf");
+        assert(-1 != ret && "unable to register Inconsolata-Regular.ttf");
+
+        // do not issue a warning in release
+        Q_UNUSED(ret)
     }
 }
 
-static void appendRow(QTreeWidget *tw, const QString &str, const QString &str2=NULL,
-                      const QString &str3=NULL, const QString &str4=NULL, const QString &str5=NULL) {
-    QTreeWidgetItem *tempItem = new QTreeWidgetItem();
-    // Fill dummy hidden column
-    tempItem->setText(0,"0");
-    tempItem->setText(1,str);
-    if (str2!=NULL)
-        tempItem->setText(2, str2);
-    if (str3!=NULL)
-        tempItem->setText(3, str3);
-    if (str4!=NULL)
-        tempItem->setText(4, str4);
-    if (str5!=NULL)
-        tempItem->setText(5, str5);
-    tw->insertTopLevelItem(0, tempItem);
-}
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QWidget *parent, QRCore *kore) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    core(kore),
+    ui(new Ui::MainWindow),
+    webserverThread(core, this)
 {
+    this->start_web_server();
     ui->setupUi(this);
-    this->core = NULL;
+
     doLock = false;
 
-    // Add custom font
-    QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Anonymous Pro.ttf");
+    registerCustomFonts();
+
 
     /*
     * Toolbar
@@ -131,8 +128,7 @@ MainWindow::MainWindow(QWidget *parent) :
     addToolBar(graphicsBar);
 
     // Fix output panel font
-    QHelpers *help = new QHelpers();
-    help->normalizeFont(ui->consoleOutputTextEdit);
+    qhelpers::normalizeFont(ui->consoleOutputTextEdit);
 
     /*
      * Dock Widgets
@@ -237,18 +233,27 @@ MainWindow::MainWindow(QWidget *parent) :
     QShortcut* commands_shortcut = new QShortcut(QKeySequence(Qt::Key_Colon), this);
     connect(commands_shortcut, SIGNAL(activated()), this->omnibar, SLOT(showCommands()));
 
+    connect(&webserverThread, SIGNAL(finished()), this, SLOT(webserverThreadFinished()));
+}
+
+MainWindow::~MainWindow() {
+    delete ui;
+    delete core;
 }
 
 void MainWindow::start_web_server() {
-    // To be removed
-    static WebServerThread thread;
     // Start web server
-    thread.core = core;
-    thread.start();
-    QThread::sleep (1);
-    if (core->core->http_up == R_FALSE) {
-        eprintf ("FAILED TO LAUNCH\n");
-    }
+    webserverThread.startServer();
+}
+
+void MainWindow::webserverThreadFinished()
+{
+    core->core->http_up = webserverThread.isStarted() ? R_TRUE : R_FALSE;
+
+    // this is not true anymore, cause the webserver might have been stopped
+    //if (core->core->http_up == R_FALSE) {
+    //    eprintf("FAILED TO LAUNCH\n");
+    //}
 }
 
 void MainWindow::adjustColumns(QTreeWidget *tw) {
@@ -273,6 +278,20 @@ void MainWindow::appendRow(QTreeWidget *tw, const QString &str, const QString &s
     if (str5!=NULL)
         tempItem->setText(5, str5);
     tw->insertTopLevelItem(0, tempItem);
+}
+
+void MainWindow::setWebServerState(bool start)
+{
+    if (start) {
+        webserverThread.startServer();
+
+        // Open web interface on default browser
+        // ballessay: well isn't this possible with =H&
+        //QString link = "http://localhost:9090/";
+        //QDesktopServices::openUrl(QUrl(link));
+    } else {
+        webserverThread.stopServer();
+    }
 }
 
 void MainWindow::hideDummyColumns() {
@@ -314,7 +333,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
                  QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
     //qDebug() << ret;
     if (ret == QMessageBox::Save) {
-        QSettings settings("iaito", "iaito");
+        QSettings settings;
         settings.setValue("geometry", saveGeometry());
         settings.setValue("size", size());
         settings.setValue("pos", pos());
@@ -325,7 +344,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
         this->core->cmd("Pnj " + notes);
         QMainWindow::closeEvent(event);
     } else if (ret == QMessageBox::Discard) {
-        QSettings settings("iaito", "iaito");
+        QSettings settings;
         settings.setValue("geometry", saveGeometry());
         settings.setValue("size", size());
         settings.setValue("pos", pos());
@@ -337,7 +356,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::readSettings()
 {
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     QByteArray geo = settings.value("geometry", QByteArray()).toByteArray();
     restoreGeometry(geo);
     QByteArray state = settings.value("state", QByteArray()).toByteArray();
@@ -351,19 +370,15 @@ void MainWindow::readSettings()
 void MainWindow::dark() {
     qApp->setStyleSheet("QPlainTextEdit { background-color: rgb(64, 64, 64); color: rgb(222, 222, 222);} QTextEdit { background-color: rgb(64, 64, 64); color: rgb(222, 222, 222);} ");
     this->memoryDock->switchTheme(true);
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     settings.setValue("dark", true);
 }
 
 void MainWindow::def_theme() {
     qApp->setStyleSheet("");
     this->memoryDock->switchTheme(false);
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     settings.setValue("dark", false);
-}
-
-MainWindow::~MainWindow() {
-    delete ui;
 }
 
 /*
@@ -739,6 +754,7 @@ void MainWindow::on_consoleInputLineEdit_returnPressed()
         QCompleter *completer = ui->consoleInputLineEdit->completer();
         /*
          * TODO: FIXME: Crashed the fucking app
+         * ballessay: yes this will crash if no completer is set -> nullptr
          */
         //QStringListModel *completerModel = (QStringListModel*)(completer->model());
         //completerModel->setStringList(completerModel->stringList() << input);
@@ -780,6 +796,7 @@ void MainWindow::seek(const QString& offset, const QString& name) {
     core->seek (offset);
 
     refreshMem(offset);
+    this->memoryDock->disasTextEdit->setFocus();
 }
 
 void MainWindow::setup_mem() {
@@ -808,8 +825,8 @@ void MainWindow::on_backButton_clicked()
     this->core->cmd("s-");
     QString back_offset = this->core->cmd("s=").split(" > ").last().trimmed();
     if (back_offset != "") {
-        this->add_debug_output(back_offset);
-        this->seek(back_offset);
+        QString fcn = this->core->cmdFunctionAt(back_offset);
+        this->seek(this->memoryDock->normalizeAddr(back_offset), fcn);
     }
 }
 
@@ -840,24 +857,7 @@ void MainWindow::on_consoleExecButton_clicked()
 
 void MainWindow::on_actionStart_Web_Server_triggered()
 {
-    static WebServerThread thread;
-    if (ui->actionStart_Web_Server->isChecked()) {
-        // Start web server
-        thread.core = core;
-        thread.start();
-        QThread::sleep (1);
-        if (core->core->http_up==R_FALSE) {
-            eprintf ("FAILED TO LAUNCH\n");
-        }
-        // Open web interface on default browser
-        //QString link = "http://localhost:9090/";
-        //QDesktopServices::openUrl(QUrl(link));
-    } else {
-        core->core->http_up= R_FALSE;
-        // call something to kill the webserver!!
-        thread.exit(0);
-        // Stop web server
-    }
+    setWebServerState(ui->actionStart_Web_Server->isChecked());
 }
 
 void MainWindow::on_actionConsoleSync_with_core_triggered()
@@ -970,7 +970,7 @@ void MainWindow::add_debug_output(QString msg)
 
 void MainWindow::on_actionNew_triggered()
 {
-    qApp->quit();
+    close();
     on_actionLoad_triggered();
 }
 
@@ -1018,10 +1018,9 @@ void MainWindow::on_actionSDB_browser_triggered()
 
 void MainWindow::on_actionLoad_triggered()
 {
-    QProcess* process = new QProcess(this);
-    process->setProgram(qApp->applicationFilePath());
-    process->setEnvironment(QProcess::systemEnvironment());
-    process->start();
+    QProcess process(this);
+    process.setEnvironment(QProcess::systemEnvironment());
+    process.startDetached(qApp->applicationFilePath());
 }
 
 void MainWindow::on_actionShow_Hide_mainsidebar_triggered()
@@ -1087,7 +1086,7 @@ void MainWindow::on_actionForward_triggered()
 void MainWindow::toggleResponsive(bool maybe) {
     this->responsive = maybe;
     // Save options in settings
-    QSettings settings("iaito", "iaito");
+    QSettings settings;
     settings.setValue("responsive", this->responsive);
 }
 
@@ -1103,7 +1102,12 @@ void MainWindow::on_actionReset_settings_triggered()
                  QMessageBox::Ok | QMessageBox::Cancel);
     if (ret == QMessageBox::Ok) {
         // Save options in settings
-        QSettings settings("iaito", "iaito");
+        QSettings settings;
         settings.clear();
     }
+}
+
+void MainWindow::on_actionQuit_triggered()
+{
+    close();
 }

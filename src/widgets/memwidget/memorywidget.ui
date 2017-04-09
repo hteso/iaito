@@ -774,8 +774,6 @@ QToolTip {
               </layout>
               <zorder>previewToolButton</zorder>
               <zorder>decoToolButton</zorder>
-              <zorder>horizontalSpacer_2</zorder>
-              <zorder>horizontalSpacer</zorder>
               <zorder>simpleGrapgToolButton</zorder>
              </widget>
             </item>
@@ -1233,7 +1231,7 @@ p, li { white-space: pre-wrap; }
         <item>
          <widget class="QWebEngineView" name="graphWebView" native="true">
           <property name="contextMenuPolicy">
-           <enum>Qt::NoContextMenu</enum>
+           <enum>Qt::DefaultContextMenu</enum>
           </property>
           <property name="url" stdset="0">
            <url>
@@ -3048,8 +3046,8 @@ QToolTip {
  </resources>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>
