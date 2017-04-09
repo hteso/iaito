@@ -191,6 +191,9 @@ QString QRCore::cmd(const QString &str) {
 }
 
 bool QRCore::loadFile(QString path, uint64_t loadaddr=0LL, uint64_t mapaddr=0LL, bool rw=false, int va=0, int bits = 0, int idx, bool loadbin) {
+    QNOTUSED(loadaddr);
+    QNOTUSED(idx);
+
     CORE_LOCK();
     RCoreFile *f;
     if (va==0 || va == 2)
@@ -507,9 +510,9 @@ int QRCore::fcnEndBbs(QString addr) {
             QString endbbs = tmp.split(": ")[1];
             return endbbs.toInt();
         }
-    } else {
-        return 0;
     }
+
+    return 0;
 }
 
 QString QRCore::itoa(ut64 num, int rdx) {
@@ -537,6 +540,8 @@ int QRCore::config(const QString &k, int v) {
 }
 
 void QRCore::setOptions(QString key) {
+    QNOTUSED(key);
+
     // va
     // lowercase
     // show bytes
@@ -720,10 +725,11 @@ void QRCore::setSettings() {
     config("asm.xrefs", "false");
     config("asm.fcnlines", "false");
 
-    config("asm.tabs", "10");
+    config("asm.tabs", "5");
     config("asm.tabsonce", "true");
     config("asm.tabsoff", "5");
     config("asm.nbytes", "10");
+    config("asm.bbline", "true");
 
     config("anal.hasnext", "true");
     config("asm.fcncalls", "false");

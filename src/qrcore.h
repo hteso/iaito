@@ -41,6 +41,8 @@ private:
     RCore* core;
 };
 
+#define QNOTUSED(x) do { (void)(x); } while ( 0 );
+
 class QRCore : public QObject
 {
     Q_OBJECT
