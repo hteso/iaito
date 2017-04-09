@@ -41,7 +41,6 @@ public:
     RCore* operator->() const;
 };
 
-#define QNOTUSED(x) do { (void)(x); } while ( 0 );
 
 class QRCore : public QObject
 {
@@ -64,18 +63,18 @@ public:
     QList<QList<QString>> getComments();
     QMap<QString, QList<QList<QString> > > getNestedComments();
     void setOptions(QString key);
-    bool loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw, int va, int bits, int idx=0, bool loadbin=false);
+    bool loadFile(QString path, uint64_t loadaddr = 0LL, uint64_t mapaddr = 0LL, bool rw = false, int va = 0, int bits = 0, int idx = 0, bool loadbin = false);
     bool tryFile(QString path, bool rw);
     void analyze(int level);
     void seek(QString addr);
     void seek(ut64 addr);
     ut64 math(const QString &expr);
     QString itoa(ut64 num, int rdx=16);
-    QString config(const QString &k, const QString &v=NULL);
+    QString config(const QString &k, const QString &v = QString());
     int config(const QString &k, int v);
-    QList<QString> getList(const QString & type, const QString & subtype="");
+    QList<QString> getList(const QString & type, const QString &subtype = QString());
     QString assemble(const QString &code);
-    QString disassemble(const QString &code);
+    QString disassemble(const QString &hex);
     void setDefaultCPU();
     void setCPU(QString arch, QString cpu, int bits, bool temporary);
     RAnalFunction* functionAt(ut64 addr);

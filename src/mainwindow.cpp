@@ -265,13 +265,13 @@ void MainWindow::appendRow(QTreeWidget *tw, const QString &str, const QString &s
     // Fill dummy hidden column
     tempItem->setText(0,"0");
     tempItem->setText(1,str);
-    if (str2!=NULL)
+    if (!str2.isNull())
         tempItem->setText(2, str2);
-    if (str3!=NULL)
+    if (!str3.isNull())
         tempItem->setText(3, str3);
-    if (str4!=NULL)
+    if (!str4.isNull())
         tempItem->setText(4, str4);
-    if (str5!=NULL)
+    if (!str5.isNull())
         tempItem->setText(5, str5);
     tw->insertTopLevelItem(0, tempItem);
 }
@@ -784,10 +784,11 @@ void MainWindow::on_actionRefresh_Panels_triggered()
 }
 
 void MainWindow::seek(const QString& offset, const QString& name) {
-    if (offset.length()==0)
+    if (offset.isEmpty())
         return;
-    if (name != NULL)
+    if (!name.isNull())
         this->memoryDock->setWindowTitle(name);
+
     this->hexdumpTopOffset = 0;
     this->hexdumpBottomOffset = 0;
     core->seek (offset);

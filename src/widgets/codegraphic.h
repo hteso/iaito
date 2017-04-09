@@ -12,7 +12,7 @@ class GraphicsBar : public QToolBar
     Q_OBJECT
 
 public:
-    explicit GraphicsBar(MainWindow *main, QWidget *parent = 0);
+    explicit GraphicsBar(MainWindow *main);
     QGraphicsView *codeGraphic;
 
 public slots:

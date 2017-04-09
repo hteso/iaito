@@ -21,18 +21,14 @@ FlagsWidget::~FlagsWidget()
     delete ui;
 }
 
-void FlagsWidget::on_flagsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void FlagsWidget::on_flagsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QNOTUSED(column);
-
     QString offset = item->text(2);
     QString name = item->text(3);
     this->main->seek(offset, name);
 }
 
-void FlagsWidget::on_flagspaceCombo_currentTextChanged(const QString &arg1)
+void FlagsWidget::on_flagspaceCombo_currentTextChanged(const QString &)
 {
-    QNOTUSED(arg1);
-
     this->main->refreshFlags();
 }

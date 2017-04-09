@@ -372,15 +372,11 @@ void MemoryWidget::fillPlugins(QStringList plugins) {
 }
 
 void MemoryWidget::addTextDisasm(QString txt) {
-    QTextDocument *document = ui->disasTextEdit_2->document();
-    //document->undo();
     ui->disasTextEdit_2->appendPlainText(txt);
 }
 
 void MemoryWidget::replaceTextDisasm(QString txt) {
-    QTextDocument *document = ui->disasTextEdit_2->document();
     ui->disasTextEdit_2->clear();
-    //document->undo();
     ui->disasTextEdit_2->setPlainText(txt);
 }
 
@@ -458,8 +454,8 @@ void MemoryWidget::refreshDisasm(const QString &offset)
 {
     RCoreLocked lcore = this->main->core->core();
     // we must store those ranges somewhere, to handle scroll
-    ut64 addr = lcore->offset;
-    int length = lcore->num->value;
+    //ut64 addr = lcore->offset;
+    //int length = lcore->num->value;
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
@@ -529,7 +525,7 @@ void MemoryWidget::refreshHexdump(QString where)
 
     int hexdumpLength;
     int cols = lcore->print->cols;
-    int bsize = 128 * cols;
+    ut64 bsize = 128 * cols;
     if (hexdumpBottomOffset < bsize)
     {
         hexdumpBottomOffset = 0;
@@ -590,7 +586,7 @@ QList<QString> MemoryWidget::get_hexdump(QString off = "") {
 
     int hexdumpLength;
     int cols = lcore->print->cols;
-    int bsize = 128 * cols;
+    ut64 bsize = 128 * cols;
     if (hexdumpBottomOffset < bsize)
     {
         hexdumpBottomOffset = 0;
@@ -804,12 +800,12 @@ void MemoryWidget::on_hexHexText_2_selectionChanged()
     }
 }
 
-void MemoryWidget::on_hexArchComboBox_2_currentTextChanged(const QString &arg1)
+void MemoryWidget::on_hexArchComboBox_2_currentTextChanged(const QString &)
 {
     on_hexHexText_2_selectionChanged();
 }
 
-void MemoryWidget::on_hexBitsComboBox_2_currentTextChanged(const QString &arg1)
+void MemoryWidget::on_hexBitsComboBox_2_currentTextChanged(const QString &)
 {
     on_hexHexText_2_selectionChanged();
 }
@@ -1203,7 +1199,7 @@ void MemoryWidget::on_action1column_triggered()
     this->refreshHexdump();
 }
 
-void MemoryWidget::on_xreFromTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void MemoryWidget::on_xreFromTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
     QString offset = item->text(0);
     RAnalFunction *fcn = this->main->core->functionAt(offset.toLongLong(0, 16));
@@ -1211,7 +1207,7 @@ void MemoryWidget::on_xreFromTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *ite
     this->main->seek(offset, fcn->name);
 }
 
-void MemoryWidget::on_xrefToTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void MemoryWidget::on_xrefToTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
     QString offset = item->text(0);
     RAnalFunction *fcn = this->main->core->functionAt(offset.toLongLong(0, 16));
@@ -1526,7 +1522,7 @@ void MemoryWidget::on_radarToolButton_clicked()
 }
 
 
-void MemoryWidget::on_hexSideTab_2_currentChanged(int index)
+void MemoryWidget::on_hexSideTab_2_currentChanged(int /*index*/)
 {
     /*
     if (index == 2) {
@@ -1649,7 +1645,6 @@ void MemoryWidget::on_actionXRefs_triggered()
         x->updateLabels(QString(fcn->name));
 
         // Get Refs and Xrefs
-        bool ok;
         QList<QStringList> ret_refs;
         QList<QStringList> ret_xrefs;
 
