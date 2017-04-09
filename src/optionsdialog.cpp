@@ -12,7 +12,6 @@ OptionsDialog::OptionsDialog(QString filename, QWidget *parent):
     analThread(this)
 {
     this->core = new QRCore();
-    this->anal_level = 0;
 
     ui->setupUi(this);
     setWindowFlags(windowFlags() & (~Qt::WindowContextHelpButtonHint));
@@ -42,7 +41,7 @@ OptionsDialog::OptionsDialog(QString filename, QWidget *parent):
     //this->layout()->setSizeConstraint(QLayout::SetFixedSize);
 
     connect(&analThread, SIGNAL(finished()), this, SLOT(anal_finished()));
-    
+
     setFilename(filename);
 }
 
@@ -171,7 +170,6 @@ void OptionsDialog::on_okButton_clicked()
     // options dialog should show the list of archs inside the given fatbin
     int binidx = 0; // index of subbin
 
-    anal_level = ui->analCheckBox->isChecked();
     this->w->add_output(" > Loading file: " + this->filename);
     this->w->core->loadFile(this->filename, loadaddr, mapaddr, rw, va, bits, binidx, load_bininfo);
     //ui->progressBar->setValue(40);
@@ -181,7 +179,7 @@ void OptionsDialog::on_okButton_clicked()
     // connect signal/slot
 
     int level = 0;
-    if (anal_level == true) {
+    if (ui->analCheckBox->isChecked()) {
         level = ui->analSlider->value();
     }
 

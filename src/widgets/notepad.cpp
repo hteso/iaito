@@ -178,9 +178,7 @@ void Notepad::on_searchEdit_returnPressed()
 
 void Notepad::on_searchEdit_textEdited(const QString &arg1)
 {
-    QNOTUSED(arg1);
-
-    QString searchString = ui->searchEdit->text();
+    QString searchString = arg1;
     QTextDocument *document = ui->notepadTextEdit->document();
 
     if (isFirstTime == false)
@@ -214,9 +212,7 @@ void Notepad::on_searchEdit_textEdited(const QString &arg1)
 
 void Notepad::on_searchEdit_textChanged(const QString &arg1)
 {
-    QNOTUSED(arg1);
-
-    QString searchString = ui->searchEdit->text();
+    QString searchString = arg1;
     QTextDocument *document = ui->notepadTextEdit->document();
 
     if (isFirstTime == false)

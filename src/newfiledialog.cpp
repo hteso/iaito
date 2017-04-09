@@ -10,18 +10,15 @@
 
 const int NewFileDialog::MaxRecentFiles;
 
-static QColor getColorFor(QString str, int pos) {
-    QNOTUSED(str);
+static QColor getColorFor(int pos) {
+    static const QList<QColor> colors{{ QColor(29, 188, 156),   // Turquoise
+                                        QColor(52, 152, 219),   // Blue
+                                        QColor(155, 89, 182),   // Violet
+                                        QColor(52, 73, 94),     // Grey
+                                        QColor(231, 76, 60),    // Red
+                                        QColor(243, 156, 17)}}; // Orange
 
-    QList<QColor> Colors;
-    Colors << QColor(29, 188, 156); // Turquoise
-    Colors << QColor(52, 152, 219); // Blue
-    Colors << QColor(155, 89, 182); // Violet
-    Colors << QColor(52, 73, 94);   // Grey
-    Colors << QColor(231, 76, 60);  // Red
-    Colors << QColor(243, 156, 17); // Orange
-
-    return Colors[pos % 6];
+    return colors[pos % colors.size()];
 
 }
 
@@ -36,13 +33,15 @@ static QIcon getIconFor(QString str, int pos) {
     QPainter pixPaint(&pixmap);
     pixPaint.setPen(Qt::NoPen);
     pixPaint.setRenderHint(QPainter::Antialiasing);
-    pixPaint.setBrush(QBrush(QBrush(getColorFor(str, pos))));
+    pixPaint.setBrush(QBrush(QBrush(getColorFor(pos))));
     pixPaint.drawEllipse(1,1,w-2,h-2);
     pixPaint.setPen(Qt::white);
     pixPaint.setFont(QFont("Verdana",24,1));
     pixPaint.drawText(0, 0, w, h-2, Qt::AlignCenter, QString(str).toUpper().mid(0,2));
     return QIcon(pixmap);
 }
+
+
 NewFileDialog::NewFileDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::NewFileDialog)
@@ -107,7 +106,7 @@ void NewFileDialog::on_loadFileButton_clicked()
             files.removeLast();
 
         settings.setValue("recentFileList", files);
-                
+
         // Close dialog and open OptionsDialog
         close();
         OptionsDialog* o = new OptionsDialog(fname);
@@ -127,7 +126,7 @@ void NewFileDialog::on_newFileButton_clicked()
 
     if (!fileName.isEmpty()) {
         ui->newFileEdit->setText(fileName);
-        ui->loadFileButton->setFocus();        
+        ui->loadFileButton->setFocus();
     }
 }
 

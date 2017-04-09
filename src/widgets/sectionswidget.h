@@ -23,9 +23,9 @@ class SectionsWidget : public QSplitter
     Q_OBJECT
 
 public:
-    explicit SectionsWidget(MainWindow *main, QWidget *parent = 0);
-    void fillSections(int row, const QString &str, const QString &str2,
-                                      const QString &str3, const QString &str4);
+    explicit SectionsWidget(MainWindow *main);
+    void fillSections(int row, const QString &str, const QString &str2 = QString(),
+                      const QString &str3 = QString(), const QString &str4 = QString());
     void adjustColumns();
     QTreeWidget              *tree;
 

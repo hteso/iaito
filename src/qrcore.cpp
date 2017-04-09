@@ -191,10 +191,7 @@ QString QRCore::cmd(const QString &str) {
     return o;
 }
 
-bool QRCore::loadFile(QString path, uint64_t loadaddr=0LL, uint64_t mapaddr=0LL, bool rw=false, int va=0, int bits = 0, int idx, bool loadbin) {
-    QNOTUSED(loadaddr);
-    QNOTUSED(idx);
-
+bool QRCore::loadFile(QString path, uint64_t /*loadaddr*/, uint64_t mapaddr, bool rw, int va, int bits, int /*idx*/, bool loadbin) {
     CORE_LOCK();
     RCoreFile *f;
     if (va==0 || va == 2)
@@ -358,7 +355,7 @@ bool QRCore::tryFile(QString path, bool rw) {
     return true;
 }
 
-QList<QString> QRCore::getList(const QString & type, const QString & subtype) {
+QList<QString> QRCore::getList(const QString &type, const QString &subtype) {
     CORE_LOCK();
     RListIter *it;
     QList<QString> ret = QList<QString>();
@@ -464,7 +461,7 @@ QList<QString> QRCore::getList(const QString & type, const QString & subtype) {
                 ret << a[1];
         }
     } else if (type == "flags") {
-        if (subtype!=NULL && subtype != "")
+        if (!subtype.isEmpty())
             cmd ("fs "+subtype);
         else cmd ("fs *");
         QString flags = cmd("f*");
@@ -523,7 +520,7 @@ QString QRCore::itoa(ut64 num, int rdx) {
 QString QRCore::config(const QString &k, const QString &v) {
     CORE_LOCK();
     QByteArray key = k.toUtf8();
-    if (v!=NULL) {
+    if (!v.isNull()) {
         r_config_set (core_->config, key.constData(), v.toUtf8().constData());
         return NULL;
     }
@@ -540,9 +537,7 @@ int QRCore::config(const QString &k, int v) {
     return r_config_get_i (core_->config, key.constData());
 }
 
-void QRCore::setOptions(QString key) {
-    QNOTUSED(key);
-
+void QRCore::setOptions(QString /*key*/) {
     // va
     // lowercase
     // show bytes

@@ -449,10 +449,8 @@ void PieView::scrollTo(const QModelIndex &index, ScrollHint)
     Find the indices corresponding to the extent of the selection.
 */
 
-void PieView::setSelection(const QRect &rect, QItemSelectionModel::SelectionFlags command)
+void PieView::setSelection(const QRect &rect, QItemSelectionModel::SelectionFlags /*command*/)
 {
-    QNOTUSED(command);
-
     // Use content widget coordinates because we will use the itemRegion()
     // function to check for intersections.
 

@@ -62,10 +62,8 @@ void XrefsDialog::fillRefs(QList<QStringList> refs, QList<QStringList> xrefs) {
 
 }
 
-void XrefsDialog::on_fromTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void XrefsDialog::on_fromTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QNOTUSED(column);
-
     QString offset = item->text(0);
     RAnalFunction *fcn = this->main->core->functionAt(offset.toLongLong(0, 16));
     //this->add_debug_output( fcn->name );
@@ -73,10 +71,8 @@ void XrefsDialog::on_fromTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int
     this->close();
 }
 
-void XrefsDialog::on_toTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void XrefsDialog::on_toTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QNOTUSED(column);
-
     QString offset = item->text(0);
     RAnalFunction *fcn = this->main->core->functionAt(offset.toLongLong(0, 16));
     //this->add_debug_output( fcn->name );

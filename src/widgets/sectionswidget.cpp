@@ -6,11 +6,9 @@
 
 #include "mainwindow.h"
 
-SectionsWidget::SectionsWidget(MainWindow *main, QWidget *parent) :
+SectionsWidget::SectionsWidget(MainWindow *main) :
     QSplitter(main)
 {
-    QNOTUSED(parent);
-
     this->main = main;
     //setupModel();
     setupViews();
@@ -63,8 +61,8 @@ void SectionsWidget::setupViews()
     pieChart->setSelectionModel(selectionModel);
 }
 
-void SectionsWidget::fillSections(int row, const QString &str, const QString &str2=NULL,
-                                  const QString &str3=NULL, const QString &str4=NULL)
+void SectionsWidget::fillSections(int row, const QString &str, const QString &str2,
+                                  const QString &str3, const QString &str4)
 {
     QList<QString> colors;
     //colors << "#F7464A" << "#46BFBD" << "#FDB45C" << "#949FB1" << "#4D5360" << "#D97041" <<"#C7604C" << "#21323D" << "#9D9B7F" << "#7D4F6D" << "#584A5E";

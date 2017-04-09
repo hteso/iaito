@@ -38,7 +38,6 @@ private slots:
     void on_AdvOptButton_clicked();
 
 private:
-    int anal_level;
     QString filename;
     QString shortfn;
     Ui::OptionsDialog *ui;

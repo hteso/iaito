@@ -10,11 +10,9 @@
 #include <QJsonArray>
 #include <QJsonParseError>
 
-GraphicsBar::GraphicsBar(MainWindow *main, QWidget *parent) :
+GraphicsBar::GraphicsBar(MainWindow *main) :
     QToolBar(main)
 {
-    QNOTUSED(parent);
-
     setObjectName("codeGraphics");
     setWindowTitle("Code bar");
 //    setMovable(false);
@@ -41,10 +39,7 @@ GraphicsBar::GraphicsBar(MainWindow *main, QWidget *parent) :
     //addWidget(addsCombo);
 }
 
-void GraphicsBar::paintEvent(QPaintEvent *event) {
-    QNOTUSED(event);
-
-    QPainter painter(this);
+void GraphicsBar::paintEvent(QPaintEvent *) {
     this->fillData();
 }
 

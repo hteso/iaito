@@ -92,10 +92,8 @@ void FunctionsWidget::fillFunctions() {
     this->addTooltips();
 }
 
-void FunctionsWidget::on_functionsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void FunctionsWidget::on_functionsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QNOTUSED(column);
-
     QString offset = item->text(1);
     QString name = item->text(3);
     this->main->seek(offset, name);
@@ -352,10 +350,8 @@ void FunctionsWidget::on_actionVertical_triggered()
     ui->tabWidget->setCurrentIndex(1);
 }
 
-void FunctionsWidget::on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void FunctionsWidget::on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QNOTUSED(column);
-
     //QString offset = item->text(1);
     QString name = item->text(0);
     QString offset = item->child(0)->text(0).split(":")[1];
