@@ -28,7 +28,6 @@ CommentsWidget::CommentsWidget(MainWindow *main, QWidget *parent) :
     ui->frame->hide();
 
     // Resize eventfilter
-    this->installEventFilter(this);
     ui->commentsTreeWidget->viewport()->installEventFilter(this);
 }
 
@@ -39,6 +38,8 @@ CommentsWidget::~CommentsWidget()
 
 void CommentsWidget::on_commentsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
 {
+    QNOTUSED(column);
+
     // Get offset and name of item double clicked
     // TODO: use this info to change disasm contents
     QString offset = item->text(1);
@@ -134,4 +135,5 @@ bool CommentsWidget::eventFilter(QObject *obj, QEvent *event) {
             }
         }
     }
+    return QDockWidget::eventFilter(obj, event);
 }

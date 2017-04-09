@@ -32,7 +32,7 @@ class MemoryWidget : public QDockWidget
     Q_OBJECT
 
 public:
-    explicit MemoryWidget(MainWindow *main, QWidget *parent = 0);
+    explicit MemoryWidget(MainWindow *main);
     ~MemoryWidget();
 
     MainWindow       *main;
@@ -66,7 +66,7 @@ public slots:
 
     void replaceTextDisasm(QString txt);
 
-    void refreshDisasm(QString off);
+    void refreshDisasm(const QString &offset = QString());
 
     void refreshHexdump(QString where=0);
 
