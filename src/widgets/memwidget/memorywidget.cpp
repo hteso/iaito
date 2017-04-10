@@ -11,7 +11,7 @@
 #include <QScrollBar>
 #include <QClipboard>
 #include <QShortcut>
-#include <QWebFrame>
+#include <QWebEnginePage>
 #include <QMenu>
 #include <QFont>
 #include <QUrl>
@@ -66,8 +66,9 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     graph_bar->setVisible(false);
 
     // Hide graph webview scrollbars
-    ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
-    ui->graphWebView->page()->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
+    ui->graphWebView->page()->runJavaScript("document.body.style.overflow='hidden';");
+ //   ui->graphWebView->page()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
+ //   ui->graphWebView->page()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
 
     // Allows the local resources (qrc://) to access http content
     if (!ui->graphWebView->settings()->testAttribute(QWebSettings::LocalContentCanAccessRemoteUrls))

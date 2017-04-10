@@ -11,8 +11,10 @@ win32 {
 
 ICON = img/Enso.icns
 
-QT       += core gui webkit webkitwidgets
+QT       += core gui webengine webenginewidgets
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
 
 QT_CONFIG -= no-pkg-config
 
