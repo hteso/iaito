@@ -60,7 +60,8 @@ SOURCES += \
     widgets/omnibar.cpp \
     widgets/dashboard.cpp \
     dialogs/xrefsdialog.cpp \
-    hexhighlighter.cpp
+    hexhighlighter.cpp \
+    widgets/sectionsdock.cpp
 
 HEADERS  += \
     mainwindow.h \
@@ -96,7 +97,8 @@ HEADERS  += \
     widgets/dashboard.h \
     dialogs/xrefsdialog.h \
     widgets/banned.h \
-    hexhighlighter.h
+    hexhighlighter.h \
+    widgets/sectionsdock.h
 
 FORMS    += \
     mainwindow.ui \
@@ -118,7 +120,8 @@ FORMS    += \
     dialogs/commentsdialog.ui \
     widgets/sidebar.ui \
     widgets/dashboard.ui \
-    dialogs/xrefsdialog.ui
+    dialogs/xrefsdialog.ui \
+    widgets/sectionsdock.ui
 
 RESOURCES += \
     resources.qrc
