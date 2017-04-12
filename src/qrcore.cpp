@@ -1,6 +1,8 @@
 #include "qrcore.h"
 #include "sdb.h"
 
+#include <QRegularExpression>
+
 #define DB this->db
 
 RCoreLocked::RCoreLocked(RCore *core)
@@ -457,17 +459,15 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
             QStringList lines = this->cmd("ii").split("\n");
             foreach (QString line, lines)
             {
-                QStringList tmp = line.split(" ");
-                if (tmp.length() > 2)
-                {
-                    QString final;
-                    foreach (QString field, tmp)
-                    {
-                        QString value = field.split("=")[1];
-                        final.append(value + ",");
-                    }
-                    ret << final;
-                }
+                QRegularExpression re("^ordinal=([^\\ ]*) plt=([^\\ ]*) bind=([^\\ ]*) type=([^\\ ]*) name=(.*)$");
+                QRegularExpressionMatch match = re.match(line);
+
+                if(!match.hasMatch())
+                    continue;
+
+                QString final = QString("%1,%2,%3,%4,%5,").arg(match.captured(1), match.captured(2),
+                                                     match.captured(3), match.captured(4), match.captured(5));
+                ret << final;
             }
         }
         else if (subtype == "entrypoints")
