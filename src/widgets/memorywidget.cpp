@@ -36,6 +36,9 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     this->memTabWidget = ui->memTabWidget;
 
     this->last_fcn = "entry0";
+    this->last_disasm_fcn = "";
+    this->last_graph_fcn = "";
+    this->last_hexdump_fcn = "";
 
     // Increase asm text edit margin
     QTextDocument *asm_docu = this->disasTextEdit->document();
@@ -484,6 +487,7 @@ void MemoryWidget::refreshDisasm(const QString &offset)
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
+    disconnect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
 
     // Get disas at offset
     if (!offset.isEmpty())
@@ -523,24 +527,7 @@ void MemoryWidget::refreshDisasm(const QString &offset)
     }
 
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
-
-    // Gett ALL disasm, dissabled
-    /*
-    int size;
-    QString txt;
-    size = main->core->get_size();
-    QList<QList<QString>> sections = main->core->get_exec_sections();
-
-    foreach (QList<QString> section, sections) {
-        // TODO: Remove later this check and add all sections
-        if (section[2].contains(".text")) {
-            this->main->core->cmd("s section." + section[2]);
-            this->main->core->cmd("b " + section[1]);
-            txt.append( this->main->core->cmd("pD") );
-        }
-    }
-    */
-
+    connect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
 }
 
 void MemoryWidget::refreshHexdump(QString where)
@@ -577,7 +564,7 @@ void MemoryWidget::refreshHexdump(QString where)
         this->main->core->cmd("ss " + where);
     }
     // Add first the hexdump at block size --
-    this->main->core->cmd("ss -" + this->main->core->itoa(hexdumpLength));
+    this->main->core->cmd("ss-" + this->main->core->itoa(hexdumpLength));
     //s = this->normalize_addr(this->main->core->cmd("s"));
     QList<QString> ret = this->get_hexdump("");
 
@@ -588,7 +575,7 @@ void MemoryWidget::refreshHexdump(QString where)
     this->resizeHexdump();
 
     // Add then the hexdump at block size ++
-    this->main->core->cmd("ss +" + this->main->core->itoa(hexdumpLength));
+    this->main->core->cmd("ss+" + this->main->core->itoa(hexdumpLength));
     // Get address to move cursor to later
     //QString s = "0x0" + this->main->core->cmd("s").split("0x")[1].trimmed();
     s = this->normalize_addr(this->main->core->cmd("s"));
@@ -1525,7 +1512,7 @@ void MemoryWidget::create_graph(QString off)
     QString fcn = this->main->core->cmdFunctionAt(off);
 
     //this->main->add_debug_output("Graph Fcn: " + fcn);
-    ui->graphWebView->load(QUrl("qrc:/graph/html/graph/index.html#" + off));
+    ui->graphWebView->setUrl(QUrl("qrc:/graph/html/graph/index.html#" + off));
     QString port = this->main->core->config("http.port");
 
     ui->graphWebView->page()->runJavaScript(QString("r2.root=\"http://localhost:%1\"").arg(port));
@@ -1613,8 +1600,9 @@ void MemoryWidget::on_disasTextEdit_2_cursorPositionChanged()
             ui->fcnNameEdit->setText(at);
             this->main->memoryDock->setWindowTitle(at);
             this->main->memoryDock->get_refs_data(ele);
-            this->main->memoryDock->create_graph(ele);
+            //this->main->memoryDock->create_graph(ele);
             this->setMiniGraph(at);
+            this->main->current_address = at;
         }
     }
 }
@@ -1767,7 +1755,7 @@ bool MemoryWidget::eventFilter(QObject *obj, QEvent *event)
     if ((obj == ui->disasTextEdit_2 || obj == ui->disasTextEdit_2->viewport()) && event->type() == QEvent::MouseButtonDblClick)
     {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
-        qDebug()<<QString("Click location: (%1,%2)").arg(mouseEvent->x()).arg(mouseEvent->y());
+        //qDebug()<<QString("Click location: (%1,%2)").arg(mouseEvent->x()).arg(mouseEvent->y());
         QTextCursor cursor = ui->disasTextEdit_2->cursorForPosition(QPoint(mouseEvent->x(), mouseEvent->y()));
         cursor.select(QTextCursor::LineUnderCursor);
         QString lastline = cursor.selectedText();
@@ -1935,6 +1923,45 @@ void MemoryWidget::frameLoadFinished(bool ok)
         {
             QString js = "r2ui.graph_panel.render('dark');";
             ui->graphWebView->page()->runJavaScript(js);
+        }
+    }
+}
+
+void MemoryWidget::on_memTabWidget_currentChanged(int index)
+{
+    /*
+    this->main->add_debug_output("Update index: " + QString::number(index) + " to function: " + this->main->current_address);
+    this->main->add_debug_output("Last disasm: " + this->last_disasm_fcn);
+    this->main->add_debug_output("Last graph: " + this->last_graph_fcn);
+    this->main->add_debug_output("Last hexdump: " + this->last_hexdump_fcn);
+    */
+    this->updateViews();
+}
+
+void MemoryWidget::updateViews() {
+    // Update only the selected view to improve performance
+
+    int index = ui->memTabWidget->tabBar()->currentIndex();
+    if (index == 0) {
+        // Disasm
+        if (this->last_disasm_fcn != this->main->current_address) {
+            //this->main->add_debug_output("Doing disasm");
+            this->refreshDisasm(this->main->current_address);
+            this->last_disasm_fcn = this->main->current_address;
+        }
+    } else if (index == 1) {
+        // Hex
+        if (this->last_hexdump_fcn != this->main->current_address) {
+            //this->main->add_debug_output("Doing hex");
+            this->refreshHexdump(this->main->current_address);
+            this->last_hexdump_fcn = this->main->current_address;
+        }
+    } else if (index == 2) {
+        // Graph
+        if (this->last_graph_fcn != this->main->current_address) {
+            //this->main->add_debug_output("Doing graph");
+            this->create_graph(this->main->current_address);
+            this->last_graph_fcn = this->main->current_address;
         }
     }
 }
