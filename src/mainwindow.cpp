@@ -256,7 +256,7 @@ void MainWindow::adjustColumns(QTreeWidget *tw)
     }
 }
 
-void MainWindow::appendRow(QTreeWidget *tw, const QString &str, const QString &str2,
+QTreeWidgetItem *MainWindow::appendRow(QTreeWidget *tw, const QString &str, const QString &str2,
                            const QString &str3, const QString &str4, const QString &str5)
 {
     QTreeWidgetItem *tempItem = new QTreeWidgetItem();
@@ -272,6 +272,7 @@ void MainWindow::appendRow(QTreeWidget *tw, const QString &str, const QString &s
     if (str5 != NULL)
         tempItem->setText(5, str5);
     tw->insertTopLevelItem(0, tempItem);
+    return tempItem;
 }
 
 void MainWindow::setWebServerState(bool start)
@@ -883,6 +884,21 @@ void MainWindow::seek(const QString &offset, const QString &name)
     core->seek(offset);
 
     refreshMem(offset);
+    this->memoryDock->disasTextEdit->setFocus();
+}
+
+
+void MainWindow::seek(const RVA offset, const QString &name)
+{
+    if (name != NULL) {
+        this->memoryDock->setWindowTitle(name);
+        this->current_address = name;
+    }
+    this->hexdumpTopOffset = 0;
+    this->hexdumpBottomOffset = 0;
+    core->seek(offset);
+
+    refreshMem(RAddressString(offset));
     this->memoryDock->disasTextEdit->setFocus();
 }
 

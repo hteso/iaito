@@ -67,6 +67,7 @@ public:
     void setFilename(QString fn);
     void setCore(QRCore *core);
     void seek(const QString &offset, const QString &name = NULL);
+    void seek(const RVA offset, const QString &name = NULL);
     void updateFrames();
     void refreshFunctions();
     void refreshComments();
@@ -76,7 +77,7 @@ public:
     void add_debug_output(QString msg);
     void send_to_notepad(QString txt);
     void adjustColumns(QTreeWidget *tw);
-    void appendRow(QTreeWidget *tw, const QString &str, const QString &str2 = NULL,
+    QTreeWidgetItem *appendRow(QTreeWidget *tw, const QString &str, const QString &str2 = NULL,
                    const QString &str3 = NULL, const QString &str4 = NULL, const QString &str5 = NULL);
 
     void setWebServerState(bool start);

@@ -44,6 +44,27 @@ public:
 
 #define QNOTUSED(x) do { (void)(x); } while ( 0 );
 
+typedef ut64 RVA;
+
+inline QString RAddressString(RVA addr)
+{
+    return QString::asprintf("%#010llx", addr);
+}
+
+inline QString RSizeString(RVA size)
+{
+    return QString::asprintf("%lld", size);
+}
+
+struct RFunction
+{
+    RVA offset;
+    RVA size;
+    QString name;
+};
+
+Q_DECLARE_METATYPE(RFunction)
+
 class QRCore : public QObject
 {
     Q_OBJECT
@@ -75,7 +96,6 @@ public:
     QString itoa(ut64 num, int rdx = 16);
     QString config(const QString &k, const QString &v = NULL);
     int config(const QString &k, int v);
-    QList<QString> getList(const QString &type, const QString &subtype = "");
     QString assemble(const QString &code);
     QString disassemble(const QString &code);
     void setDefaultCPU();
@@ -102,6 +122,9 @@ public:
     QList<QString> opcodes;
     QList<QString> regs;
     void setSettings();
+
+    QList<QString> getList(const QString &type, const QString &subtype = "");
+    QList<RFunction> getAllFunctions();
 
     RCoreLocked core() const;
 
