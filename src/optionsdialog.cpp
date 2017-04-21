@@ -57,13 +57,10 @@ OptionsDialog::~OptionsDialog()
     delete ui;
 }
 
-void OptionsDialog::on_closeButton_clicked()
+void OptionsDialog::setupAndStartAnalysis(int level)
 {
-    close();
-}
+    ui->analSlider->setValue(level);
 
-void OptionsDialog::on_okButton_clicked()
-{
     this->setEnabled(0);
     ui->logo->setEnabled(true);
 
@@ -195,7 +192,17 @@ void OptionsDialog::on_okButton_clicked()
     // Threads stuff
     // connect signal/slot
 
-    analThread.start(core, ui->analSlider->value());
+    analThread.start(core, level);
+}
+
+void OptionsDialog::on_closeButton_clicked()
+{
+    close();
+}
+
+void OptionsDialog::on_okButton_clicked()
+{
+    setupAndStartAnalysis(ui->analSlider->value());
 }
 
 void OptionsDialog::anal_finished()
