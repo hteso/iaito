@@ -222,8 +222,17 @@ QJsonDocument QRCore::cmdj(const QString &str)
 {
     CORE_LOCK();
     QByteArray cmd = str.toUtf8();
+
     char *res = r_core_cmd_str(this->core_, cmd.constData());
-    QJsonDocument doc = res ? QJsonDocument::fromJson(QByteArray(res)) : QJsonDocument();
+
+    QString resString = QString(res);
+
+    QJsonParseError jsonError;
+    QJsonDocument doc = res ? QJsonDocument::fromJson(resString.toUtf8(), &jsonError) : QJsonDocument();
+
+    if(jsonError.error != QJsonParseError::NoError)
+        eprintf("Failed to parse JSON: %s\n", jsonError.errorString().toLocal8Bit().constData());
+
     r_mem_free(res);
     return doc;
 }
