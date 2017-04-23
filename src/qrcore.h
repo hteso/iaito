@@ -61,6 +61,8 @@ struct RFunction
     RVA offset;
     RVA size;
     QString name;
+
+    bool contains(RVA addr) const     { return addr >= offset && addr < offset + size; }
 };
 
 Q_DECLARE_METATYPE(RFunction)

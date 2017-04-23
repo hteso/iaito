@@ -12,6 +12,31 @@ namespace Ui
     class FunctionsWidget;
 }
 
+
+class FunctionModel : public QAbstractListModel
+{
+Q_OBJECT
+
+private:
+    MainWindow *main;
+
+    QList<RFunction> functions;
+
+public:
+    FunctionModel(QList<RFunction> *functions, MainWindow *main, QObject *parent = 0);
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    QVariant data(const QModelIndex &index, int role) const;
+    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+
+    void setFunctions(QList<RFunction> functions);
+
+private slots:
+    void cursorAddressChanged(RVA addr);
+};
+
+
 class FunctionsWidget : public QDockWidget
 {
     Q_OBJECT
@@ -20,12 +45,11 @@ public:
     explicit FunctionsWidget(MainWindow *main, QWidget *parent = 0);
     ~FunctionsWidget();
 
-    QTreeWidget    *functionsTreeWidget;
     void fillFunctions();
     void addTooltips();
 
 private slots:
-    void on_functionsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column);
+    void on_functionsTreeView_itemDoubleClicked(const QModelIndex &index);
     void showFunctionsContextMenu(const QPoint &pt);
 
     void on_actionDisasAdd_comment_triggered();
@@ -52,6 +76,13 @@ private:
     Ui::FunctionsWidget *ui;
 
     MainWindow      *main;
+
+    QList<RFunction> functions;
+    FunctionModel function_model;
 };
+
+
+
+
 
 #endif // FUNCTIONSWIDGET_H

@@ -10,22 +10,146 @@
 #include <QDebug>
 #include <QString>
 
+FunctionModel::FunctionModel(QList<RFunction> *functions, MainWindow *main, QObject *parent)
+        : QAbstractListModel(parent)
+{
+    this->main = main;
+
+    connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(cursorAddressChanged(RVA)));
+}
+
+int FunctionModel::rowCount(const QModelIndex &parent) const
+{
+    return functions.count();
+}
+
+int FunctionModel::columnCount(const QModelIndex &parent) const
+{
+    return 3;
+}
+
+QVariant FunctionModel::data(const QModelIndex &index, int role) const
+{
+    if(!index.isValid())
+        return QVariant();
+
+    if(index.row() >= functions.count())
+        return QVariant();
+
+    const RFunction &function = functions[index.row()];
+
+    switch(role)
+    {
+        case Qt::DisplayRole:
+            switch(index.column())
+            {
+                case 0:
+                    return RAddressString(function.offset);
+                case 1:
+                    return RSizeString(function.size);
+                case 2:
+                    return function.name;
+                default:
+                    return QVariant();
+            }
+
+        case Qt::DecorationRole:
+            //if(function.name.contains("imp") && index.column() == 2)
+            //    return QColor(Qt::yellow);
+            return QVariant();
+
+        case Qt::FontRole:
+        {
+            int weight = -1;
+
+            if(function.contains(main->getCursorAddress()))
+                weight = QFont::Bold;
+
+            return QFont("Noto", 9, weight);
+        }
+
+        case Qt::ToolTipRole:
+        {
+            QList<QString> info = main->core->cmd("afi @ " + function.name).split("\n");
+            if (info.length() > 2) {
+                QString size = info[4].split(" ")[1];
+                QString complex = info[8].split(" ")[1];
+                QString bb = info[11].split(" ")[1];
+                return QString("Summary:\n\n    Size: " + size +
+                               "\n    Cyclomatic complexity: " + complex +
+                               "\n    Basic blocks: " + bb +
+                               "\n\nDisasm preview:\n\n" + main->core->cmd("pdi 10 @ " + function.name) +
+                               "\nStrings:\n\n" + main->core->cmd("pdsf @ " + function.name));
+            }
+            return QVariant();
+        }
+
+        //case Qt::BackgroundRole:
+        //    return QBrush(Qt::green);
+
+        case Qt::UserRole:
+            return QVariant::fromValue(function);
+
+        default:
+            return QVariant();
+    }
+}
+
+QVariant FunctionModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if(role == Qt::DisplayRole && orientation == Qt::Horizontal)
+    {
+        switch(section)
+        {
+            case 0:
+                return tr("Offset");
+            case 1:
+                return tr("Size");
+            case 2:
+                return tr("Name");
+            default:
+                return QVariant();
+        }
+    }
+
+    return QVariant();
+}
+
+void FunctionModel::setFunctions(QList<RFunction> functions)
+{
+    beginResetModel();
+    this->functions = functions;
+    endResetModel();
+}
+
+void FunctionModel::cursorAddressChanged(RVA addr)
+{
+    emit dataChanged(index(0), index(rowCount(), columnCount()));
+}
+
+
+
 FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     QDockWidget(parent),
-    ui(new Ui::FunctionsWidget)
+    ui(new Ui::FunctionsWidget),
+    function_model(&functions, main, this)
 {
     ui->setupUi(this);
 
     // Radare core found in:
     this->main = main;
-    this->functionsTreeWidget = ui->functionsTreeWidget;
-    this->functionsTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->functionsTreeView->setModel(&function_model);
+
     //this->functionsTreeWidget->setFont(QFont("Monospace", 8));
     // Set Functions context menu
-    connect(ui->functionsTreeWidget, SIGNAL(customContextMenuRequested(const QPoint &)),
+    connect(ui->functionsTreeView, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showFunctionsContextMenu(const QPoint &)));
     connect(ui->nestedFunctionsTree, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showFunctionsContextMenu(const QPoint &)));
+
+    connect(ui->functionsTreeView, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(on_functionsTreeView_itemDoubleClicked(const QModelIndex &)));
 
     // Hide the tabs
     QTabBar *tabs = ui->tabWidget->tabBar();
@@ -49,10 +173,12 @@ FunctionsWidget::~FunctionsWidget()
 
 void FunctionsWidget::fillFunctions()
 {
-    this->functionsTreeWidget->clear();
+    function_model.setFunctions(this->main->core->getAllFunctions());
+
+    /*this->functionsTreeWidget->clear();
     ui->nestedFunctionsTree->clear();
 
-    for (auto i : this->main->core->getAllFunctions())
+    for (auto i : functions)
     {
         // Add list function
         QTreeWidgetItem *item = this->main->appendRow(this->functionsTreeWidget, RAddressString(i.offset), RSizeString(i.size), i.name);
@@ -73,14 +199,12 @@ void FunctionsWidget::fillFunctions()
     ui->nestedFunctionsTree->sortByColumn(0, Qt::AscendingOrder);
     this->main->adjustColumns(this->functionsTreeWidget);
 
-    addTooltips();
+    addTooltips();*/
 }
 
-void FunctionsWidget::on_functionsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
+void FunctionsWidget::on_functionsTreeView_itemDoubleClicked(const QModelIndex &index)
 {
-    QNOTUSED(column);
-
-    RFunction function = item->data(0, Qt::UserRole).value<RFunction>();
+    RFunction function = function_model.data(index, Qt::UserRole).value<RFunction>();
     this->main->seek(function.offset, function.name);
     this->main->memoryDock->raise();
 }
@@ -88,7 +212,7 @@ void FunctionsWidget::on_functionsTreeWidget_itemDoubleClicked(QTreeWidgetItem *
 void FunctionsWidget::showFunctionsContextMenu(const QPoint &pt)
 {
     // Set functions popup menu
-    QMenu *menu = new QMenu(ui->functionsTreeWidget);
+    /*QMenu *menu = new QMenu(ui->functionsTreeWidget);
     menu->clear();
     menu->addAction(ui->actionDisasAdd_comment);
     menu->addAction(ui->actionFunctionsRename);
@@ -106,12 +230,12 @@ void FunctionsWidget::showFunctionsContextMenu(const QPoint &pt)
         ui->nestedFunctionsTree->setContextMenuPolicy(Qt::CustomContextMenu);
         menu->exec(ui->nestedFunctionsTree->mapToGlobal(pt));
     }
-    delete menu;
+    delete menu;*/
 }
 
 void FunctionsWidget::on_actionDisasAdd_comment_triggered()
 {
-    QString fcn_name = "";
+    /*QString fcn_name = "";
     // Create dialog
     CommentsDialog *c = new CommentsDialog(this);
     // Get selected item in functions tree widget
@@ -138,12 +262,12 @@ void FunctionsWidget::on_actionDisasAdd_comment_triggered()
         this->main->seek(fcn_name);
         // TODO: Refresh functions tree widget
     }
-    this->main->refreshComments();
+    this->main->refreshComments();*/
 }
 
 void FunctionsWidget::addTooltips()
 {
-
+/*
     // Add comments to list functions
     QList<QTreeWidgetItem *> clist = this->functionsTreeWidget->findItems("*", Qt::MatchWildcard, 3);
     foreach (QTreeWidgetItem *item, clist)
@@ -182,12 +306,12 @@ void FunctionsWidget::addTooltips()
                              "\nStrings:\n\n" + this->main->core->cmd("pdsf @ " + name));
             //"\nStrings:\n\n" + this->main->core->cmd("pds @ " + name + "!$F"));
         }
-    }
+    }*/
 }
 
 void FunctionsWidget::on_actionFunctionsRename_triggered()
 {
-    // Create dialog
+    /*// Create dialog
     RenameDialog *r = new RenameDialog(this);
     // Get selected item in functions tree widget
     QList<QTreeWidgetItem *> selected_rows = ui->functionsTreeWidget->selectedItems();
@@ -205,21 +329,21 @@ void FunctionsWidget::on_actionFunctionsRename_triggered()
         // Change name in functions tree widget
         selected_rows.first()->setText(3, new_name);
         // Scroll to show the new name in functions tree widget
-        /*
-         * QAbstractItemView::EnsureVisible
-         * QAbstractItemView::PositionAtTop
-         * QAbstractItemView::PositionAtBottom
-         * QAbstractItemView::PositionAtCenter
-         */
+        //
+        // QAbstractItemView::EnsureVisible
+        // QAbstractItemView::PositionAtTop
+        // QAbstractItemView::PositionAtBottom
+        // QAbstractItemView::PositionAtCenter
+        //
         ui->functionsTreeWidget->scrollToItem(selected_rows.first(), QAbstractItemView::PositionAtTop);
         // Seek to new renamed function
         this->main->seek(new_name);
-    }
+    }*/
 }
 
 void FunctionsWidget::on_action_References_triggered()
 {
-    QList<QTreeWidgetItem *> selected_rows = ui->functionsTreeWidget->selectedItems();
+    /*QList<QTreeWidgetItem *> selected_rows = ui->functionsTreeWidget->selectedItems();
     // Get selected function address
     QString address = selected_rows.first()->text(1);
 
@@ -270,7 +394,7 @@ void FunctionsWidget::on_action_References_triggered()
         }
     }
     x->fillRefs(ret_refs, ret_xrefs);
-    x->exec();
+    x->exec();*/
 }
 
 void FunctionsWidget::showTitleContextMenu(const QPoint &pt)
@@ -344,3 +468,5 @@ void FunctionsWidget::resizeEvent(QResizeEvent *event)
     }
     QDockWidget::resizeEvent(event);
 }
+
+

@@ -295,7 +295,7 @@ void MainWindow::setWebServerState(bool start)
 void MainWindow::hideDummyColumns()
 {
     // UGLY, should be a loop over all treewidgets...
-    this->functionsDock->functionsTreeWidget->setColumnHidden(0, true);
+
     this->importsDock->importsTreeWidget->setColumnHidden(0, true);
     this->symbolsDock->symbolsTreeWidget->setColumnHidden(0, true);
     this->relocsDock->relocsTreeWidget->setColumnHidden(0, true);
@@ -477,7 +477,7 @@ void MainWindow::updateFrames()
         this->flagsDock->flagsTreeWidget->setVerticalScrollMode(spp);
         this->symbolsDock->symbolsTreeWidget->setVerticalScrollMode(spp);
         this->importsDock->importsTreeWidget->setVerticalScrollMode(spp);
-        this->functionsDock->functionsTreeWidget->setVerticalScrollMode(spp);
+        // TODO(thestr4ng3r) this->functionsDock->functionsTreeWidget->setVerticalScrollMode(spp);
         this->stringsDock->stringsTreeWidget->setVerticalScrollMode(spp);
         this->relocsDock->relocsTreeWidget->setVerticalScrollMode(spp);
         this->memoryDock->xreFromTreeWidget_2->setVerticalScrollMode(spp);
@@ -488,7 +488,7 @@ void MainWindow::updateFrames()
         this->flagsDock->flagsTreeWidget->setVerticalScrollMode(spi);
         this->symbolsDock->symbolsTreeWidget->setVerticalScrollMode(spi);
         this->importsDock->importsTreeWidget->setVerticalScrollMode(spi);
-        this->functionsDock->functionsTreeWidget->setVerticalScrollMode(spi);
+        // TODO (thestr4ng3r) this->functionsDock->functionsTreeWidget->setVerticalScrollMode(spi);
         this->stringsDock->stringsTreeWidget->setVerticalScrollMode(spi);
         this->relocsDock->relocsTreeWidget->setVerticalScrollMode(spi);
         this->memoryDock->xreFromTreeWidget_2->setVerticalScrollMode(spi);
