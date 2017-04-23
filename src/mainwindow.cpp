@@ -395,7 +395,7 @@ void MainWindow::def_theme()
 
 void MainWindow::refreshFunctions()
 {
-    this->functionsDock->refreshTree();
+    this->functionsDock->fillFunctions();
 }
 
 void MainWindow::refreshComments()

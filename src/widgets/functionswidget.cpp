@@ -39,6 +39,7 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
             this, SLOT(showTitleContextMenu(const QPoint &)));
 
     connect(this->main->core, SIGNAL(offsetChanged(RVA)), this, SLOT(on_offsetChanged(RVA)));
+    connect(this->main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(on_cursorAddressChanged(RVA)));
 }
 
 FunctionsWidget::~FunctionsWidget()
@@ -72,7 +73,7 @@ void FunctionsWidget::fillFunctions()
     ui->nestedFunctionsTree->sortByColumn(0, Qt::AscendingOrder);
     this->main->adjustColumns(this->functionsTreeWidget);
 
-    this->addTooltips();
+    addTooltips();
 }
 
 void FunctionsWidget::on_functionsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
@@ -106,58 +107,6 @@ void FunctionsWidget::showFunctionsContextMenu(const QPoint &pt)
         menu->exec(ui->nestedFunctionsTree->mapToGlobal(pt));
     }
     delete menu;
-}
-
-void FunctionsWidget::refreshTree()
-{
-    this->functionsTreeWidget->clear();
-    ui->nestedFunctionsTree->clear();
-    for (auto i : this->main->core->getList("anal", "functions"))
-    {
-        QStringList a = i.split(",");
-        // off,sz,unk,name
-        // "0x0804ada3,1,13,,fcn.0804ada3"
-        // "0x0804ad4a,6,,1,,fcn.0804ad4a"
-        if (a.length() == 5)
-        {
-            // Add list function
-            this->main->appendRow(this->functionsTreeWidget, a[0], a[1], a[4]);
-            // Add nested function
-            QTreeWidgetItem *item = new QTreeWidgetItem(ui->nestedFunctionsTree);
-            item->setText(0, a[4]);
-            QTreeWidgetItem *size_it = new QTreeWidgetItem();
-            size_it->setText(0, "Offset: " + a[0]);
-            item->addChild(size_it);
-            QTreeWidgetItem *off_it = new QTreeWidgetItem();
-            off_it->setText(0, "Size: " + a[1]);
-            item->addChild(off_it);
-            ui->nestedFunctionsTree->addTopLevelItem(item);
-        }
-        else if (a.length() == 6)
-        {
-            // Add list function
-            this->main->appendRow(this->functionsTreeWidget, a[0], a[1], a[5]);
-            // Add nested function
-            QTreeWidgetItem *item = new QTreeWidgetItem(ui->nestedFunctionsTree);
-            item->setText(0, a[5]);
-            QTreeWidgetItem *size_it = new QTreeWidgetItem();
-            size_it->setText(0, "Offset: " + a[0]);
-            item->addChild(size_it);
-            QTreeWidgetItem *off_it = new QTreeWidgetItem();
-            off_it->setText(0, "Size: " + a[1]);
-            item->addChild(off_it);
-            ui->nestedFunctionsTree->addTopLevelItem(item);
-        }
-        else
-        {
-            qDebug() << "fillFunctions()" << a;
-        }
-    }
-    this->functionsTreeWidget->sortByColumn(3, Qt::AscendingOrder);
-    ui->nestedFunctionsTree->sortByColumn(0, Qt::AscendingOrder);
-    this->main->adjustColumns(this->functionsTreeWidget);
-
-    this->addTooltips();
 }
 
 void FunctionsWidget::on_actionDisasAdd_comment_triggered()

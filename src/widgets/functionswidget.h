@@ -22,7 +22,6 @@ public:
 
     QTreeWidget    *functionsTreeWidget;
     void fillFunctions();
-    void refreshTree();
     void addTooltips();
 
 private slots:
