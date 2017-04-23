@@ -37,9 +37,9 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     this->memTabWidget = ui->memTabWidget;
 
     this->last_fcn = "entry0";
-    this->last_disasm_fcn = "";
-    this->last_graph_fcn = "";
-    this->last_hexdump_fcn = "";
+    this->last_disasm_fcn = 0; //"";
+    this->last_graph_fcn = 0; //"";
+    this->last_hexdump_fcn = 0; //"";
 
     // Increase asm text edit margin
     QTextDocument *asm_docu = this->disasTextEdit->document();
@@ -187,6 +187,15 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     connect(this->hexASCIIText->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(hexScrolled()));
 
     connect(ui->graphWebView->page(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
+
+    connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(cursorAddressChanged(RVA)));
+}
+
+
+
+void MemoryWidget::on_cursorAddressChanged(RVA addr)
+{
+    setFcnName(addr);
 }
 
 /*
@@ -485,6 +494,8 @@ void MemoryWidget::refreshDisasm(const QString &offset)
     // we must store those ranges somewhere, to handle scroll
     ut64 addr = lcore->offset;
     int length = lcore->num->value;
+
+    printf("refreshDisasm %s\n", offset.toLocal8Bit().constData());
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
@@ -1542,22 +1553,25 @@ QString MemoryWidget::normalize_addr(QString addr)
     }
 }
 
-void MemoryWidget::setFcnName(QString addr)
+void MemoryWidget::setFcnName(RVA addr)
 {
     RAnalFunction *fcn;
     bool ok;
 
-    // TDOD: FIX ME, ugly
-    if (addr.contains("0x"))
+    QString addr_string;
+
+    fcn = this->main->core->functionAt(addr);
+    if (ok && fcn)
     {
-        fcn = this->main->core->functionAt(addr.toULongLong(&ok, 16));
-        if (ok && fcn)
-        {
-            QString segment = this->main->core->cmd("S. @ " + addr).split(" ").last();
-            addr = segment.trimmed() + ":" + fcn->name;
-        }
+        QString segment = this->main->core->cmd("S. @ " + addr).split(" ").last();
+        addr_string = segment.trimmed() + ":" + fcn->name;
     }
-    ui->fcnNameEdit->setText(addr);
+    else
+    {
+        addr_string = RAddressString(addr);
+    }
+
+    ui->fcnNameEdit->setText(addr_string);
 }
 
 void MemoryWidget::on_disasTextEdit_2_cursorPositionChanged()
@@ -1943,12 +1957,10 @@ void MemoryWidget::frameLoadFinished(bool ok)
 
 void MemoryWidget::on_memTabWidget_currentChanged(int index)
 {
-    /*
-    this->main->add_debug_output("Update index: " + QString::number(index) + " to function: " + this->main->current_address);
-    this->main->add_debug_output("Last disasm: " + this->last_disasm_fcn);
-    this->main->add_debug_output("Last graph: " + this->last_graph_fcn);
-    this->main->add_debug_output("Last hexdump: " + this->last_hexdump_fcn);
-    */
+    /*this->main->add_debug_output("Update index: " + QString::number(index) + " to function: " + RAddressString(main->getCursorAddress()));
+    this->main->add_debug_output("Last disasm: " + RAddressString(this->last_disasm_fcn));
+    this->main->add_debug_output("Last graph: " + RAddressString(this->last_graph_fcn));
+    this->main->add_debug_output("Last hexdump: " + RAddressString(this->last_hexdump_fcn));*/
     this->updateViews();
 }
 
@@ -1956,26 +1968,36 @@ void MemoryWidget::updateViews() {
     // Update only the selected view to improve performance
 
     int index = ui->memTabWidget->tabBar()->currentIndex();
-    /*if (index == 0) {
+
+    RVA cursor_addr = main->getCursorAddress();
+
+    QString cursor_addr_string = RAddressString(cursor_addr);
+
+    if (index == 0)
+    {
         // Disasm
-        if (this->last_disasm_fcn != this->main->current_address) {
-            //this->main->add_debug_output("Doing disasm");
-            this->refreshDisasm(this->main->current_address);
-            this->last_disasm_fcn = this->main->current_address;
+        if (this->last_disasm_fcn != cursor_addr)
+        {
+            this->refreshDisasm(cursor_addr_string);
+            this->last_disasm_fcn = cursor_addr;
         }
-    } else if (index == 1) {
+    }
+    else if (index == 1)
+    {
         // Hex
-        if (this->last_hexdump_fcn != this->main->current_address) {
-            //this->main->add_debug_output("Doing hex");
-            this->refreshHexdump(this->main->current_address);
-            this->last_hexdump_fcn = this->main->current_address;
+        if (this->last_hexdump_fcn != cursor_addr)
+        {
+            this->refreshHexdump(cursor_addr_string);
+            this->last_hexdump_fcn = cursor_addr;
         }
-    } else if (index == 2) {
+    }
+    else if (index == 2)
+    {
         // Graph
-        if (this->last_graph_fcn != this->main->current_address) {
-            //this->main->add_debug_output("Doing graph");
-            this->create_graph(this->main->current_address);
-            this->last_graph_fcn = this->main->current_address;
+        if (this->last_graph_fcn != cursor_addr)
+        {
+            this->create_graph(cursor_addr_string);
+            this->last_graph_fcn = cursor_addr;
         }
-    }*/
+    }
 }

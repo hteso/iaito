@@ -106,6 +106,7 @@ public:
     void setCPU(QString arch, QString cpu, int bits, bool temporary);
     RAnalFunction *functionAt(ut64 addr);
     QString cmdFunctionAt(QString addr);
+    QString cmdFunctionAt(RVA addr);
     /* sdb */
     QList<QString> sdbList(QString path);
     QList<QString> sdbListKeys(QString path);
@@ -128,6 +129,8 @@ public:
     void setSettings();
 
     QList<QString> getList(const QString &type, const QString &subtype = "");
+
+    QList<RVA> getSeekHistory();
     QList<RFunction> getAllFunctions();
 
     RCoreLocked core() const;

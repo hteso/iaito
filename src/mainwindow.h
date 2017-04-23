@@ -64,7 +64,7 @@ public:
     void closeEvent(QCloseEvent *event);
     void readSettings();
     void setFilename(QString fn);
-    void setCore(QRCore *core);
+    //void setCore(QRCore *core);
     void seek(const QString &offset, const QString &name = NULL);
     void seek(const RVA offset, const QString &name = NULL);
     void updateFrames();

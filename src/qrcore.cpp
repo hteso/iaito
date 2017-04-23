@@ -593,8 +593,13 @@ QString QRCore::cmdFunctionAt(QString addr)
     QString ret;
     //afi~name:1[1] @ 0x08048e44
     //ret = cmd("afi~name[1] @ " + addr);
-    ret = cmd("fd @ " + addr + "~[0]");
+    ret = cmd(QString("fd @ ") + addr + "~[0]");
     return ret.trimmed();
+}
+
+QString QRCore::cmdFunctionAt(RVA addr)
+{
+    return cmdFunctionAt(QString::number(addr));
 }
 
 int QRCore::get_size()
@@ -938,6 +943,18 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
     return ret;
 }
 
+
+QList<RVA> QRCore::getSeekHistory()
+{
+    CORE_LOCK();
+    QList<RVA> ret;
+
+    QJsonArray jsonArray = cmdj("sj").array();
+    foreach(QJsonValue value, jsonArray)
+        ret << value.toVariant().toULongLong();
+
+    return ret;
+}
 
 QList<RFunction> QRCore::getAllFunctions()
 {
