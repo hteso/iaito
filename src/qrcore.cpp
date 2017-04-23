@@ -422,10 +422,12 @@ void QRCore::seek(QString addr)
 
 
 
-void QRCore::seek(ut64 addr)
+void QRCore::seek(ut64 offset)
 {
     CORE_LOCK();
-    r_core_seek(this->core_, addr, true);
+    r_core_seek(this->core_, offset, true);
+    printf("offset: %llx\n", offset);
+    emit offsetChanged(offset);
 }
 
 bool QRCore::tryFile(QString path, bool rw)

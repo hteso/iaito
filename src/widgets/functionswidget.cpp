@@ -37,6 +37,8 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     this->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showTitleContextMenu(const QPoint &)));
+
+    connect(this->main->core, SIGNAL(offsetChanged(RVA)), this, SLOT(on_offsetChanged(RVA)));
 }
 
 FunctionsWidget::~FunctionsWidget()
@@ -366,6 +368,14 @@ void FunctionsWidget::on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *
     QString offset = item->child(0)->text(0).split(":")[1];
     this->main->seek(offset, name);
     this->main->memoryDock->raise();
+}
+
+void FunctionsWidget::on_offsetChanged(RVA offset)
+{
+}
+
+void FunctionsWidget::on_cursorAddressChanged(RVA address)
+{
 }
 
 void FunctionsWidget::resizeEvent(QResizeEvent *event)

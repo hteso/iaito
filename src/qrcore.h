@@ -68,10 +68,14 @@ Q_DECLARE_METATYPE(RFunction)
 class QRCore : public QObject
 {
     Q_OBJECT
+
 public:
     QString projectPath;
+
     explicit QRCore(QObject *parent = 0);
     ~QRCore();
+
+    RVA getOffset() const                           { return core_->offset; }
     QList<QString> getFunctionXrefs(ut64 addr);
     QList<QString> getFunctionRefs(ut64 addr, char type);
     int getCycloComplex(ut64 addr);
@@ -91,7 +95,7 @@ public:
     bool tryFile(QString path, bool rw);
     void analyze(int level);
     void seek(QString addr);
-    void seek(ut64 addr);
+    void seek(ut64 offset);
     ut64 math(const QString &expr);
     QString itoa(ut64 num, int rdx = 16);
     QString config(const QString &k, const QString &v = NULL);
@@ -131,7 +135,9 @@ public:
     /* fields */
 
     Sdb *db;
+
 signals:
+    void offsetChanged(RVA offset);
 
 public slots:
 

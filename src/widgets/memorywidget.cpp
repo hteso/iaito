@@ -429,7 +429,7 @@ void MemoryWidget::disasmScrolled()
         QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
         if (ele.contains("0x"))
         {
-            this->main->core->cmd("ss " + ele);
+            this->main->core->seek(ele);
             QString raw = this->main->core->cmd("pd 200");
             QString txt = raw.section("\n", 1, -1);
             //this->disasTextEdit->appendPlainText(" ;\n ; New content here\n ;\n " + txt.trimmed());
@@ -1573,6 +1573,10 @@ void MemoryWidget::on_disasTextEdit_2_cursorPositionChanged()
         QString at = this->main->core->cmdFunctionAt(ele);
         QString deco = this->main->core->getDecompiledCode(at);
 
+
+        RVA addr = ele.midRef(2).toULongLong(0, 16);
+        this->main->setCursorAddress(addr);
+
         if (deco != "")
         {
             ui->decoTextEdit->setPlainText(deco);
@@ -1608,7 +1612,6 @@ void MemoryWidget::on_disasTextEdit_2_cursorPositionChanged()
             this->main->memoryDock->get_refs_data(ele);
             //this->main->memoryDock->create_graph(ele);
             this->setMiniGraph(at);
-            this->main->current_address = at;
         }
     }
 }
@@ -1953,7 +1956,7 @@ void MemoryWidget::updateViews() {
     // Update only the selected view to improve performance
 
     int index = ui->memTabWidget->tabBar()->currentIndex();
-    if (index == 0) {
+    /*if (index == 0) {
         // Disasm
         if (this->last_disasm_fcn != this->main->current_address) {
             //this->main->add_debug_output("Doing disasm");
@@ -1974,5 +1977,5 @@ void MemoryWidget::updateViews() {
             this->create_graph(this->main->current_address);
             this->last_graph_fcn = this->main->current_address;
         }
-    }
+    }*/
 }

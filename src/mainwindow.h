@@ -56,7 +56,6 @@ public:
     SideBar          *sideBar;
 
     bool responsive;
-    QString current_address;
 
     explicit MainWindow(QWidget *parent = 0, QRCore *kore = nullptr);
     ~MainWindow();
@@ -81,6 +80,9 @@ public:
                    const QString &str3 = NULL, const QString &str4 = NULL, const QString &str5 = NULL);
 
     void setWebServerState(bool start);
+
+signals:
+    void cursorAddressChanged(RVA address);
 
 public slots:
 
@@ -218,6 +220,12 @@ private:
     QAction          *sidebar_action;
     SectionsDock     *sectionsDock;
     WebServerThread webserverThread;
+
+    RVA cursor_address;
+
+public:
+    RVA getCursorAddress() const        { return cursor_address; }
+    void setCursorAddress(RVA addr);
 };
 
 #endif // MAINWINDOW_H

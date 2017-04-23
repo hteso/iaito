@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent, QRCore *kore) :
     ui->setupUi(this);
 
     doLock = false;
-    this->current_address = "entry0";
+    this->cursor_address = core->getOffset();
 
     registerCustomFonts();
 
@@ -877,7 +877,7 @@ void MainWindow::seek(const QString &offset, const QString &name)
         return;
     if (name != NULL) {
         this->memoryDock->setWindowTitle(name);
-        this->current_address = name;
+        //this->current_address = name;
     }
     this->hexdumpTopOffset = 0;
     this->hexdumpBottomOffset = 0;
@@ -892,7 +892,7 @@ void MainWindow::seek(const RVA offset, const QString &name)
 {
     if (name != NULL) {
         this->memoryDock->setWindowTitle(name);
-        this->current_address = name;
+        //this->current_address = name;
     }
     this->hexdumpTopOffset = 0;
     this->hexdumpBottomOffset = 0;
@@ -1207,4 +1207,10 @@ void MainWindow::on_actionReset_settings_triggered()
 void MainWindow::on_actionQuit_triggered()
 {
     close();
+}
+
+void MainWindow::setCursorAddress(RVA addr)
+{
+    this->cursor_address = addr;
+    emit cursorAddressChanged(addr);
 }

@@ -3,6 +3,7 @@
 
 #include <QDockWidget>
 #include <QTreeWidget>
+#include "qrcore.h"
 
 class MainWindow;
 
@@ -41,6 +42,9 @@ private slots:
     void on_actionVertical_triggered();
 
     void on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *item, int column);
+
+    void on_offsetChanged(RVA offset);
+    void on_cursorAddressChanged(RVA address);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
