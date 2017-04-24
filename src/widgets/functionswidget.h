@@ -13,24 +13,31 @@ namespace Ui
 }
 
 
-class FunctionModel : public QAbstractListModel
+class FunctionModel : public QAbstractItemModel
 {
 Q_OBJECT
 
 private:
     MainWindow *main;
 
-    QList<RFunction> functions;
+    QList<RFunction> *functions;
+
+    bool nested;
 
 public:
-    FunctionModel(QList<RFunction> *functions, MainWindow *main, QObject *parent = 0);
+    FunctionModel(QList<RFunction> *functions, bool nested, MainWindow *main, QObject *parent = 0);
+
+    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+    QModelIndex parent(const QModelIndex &index) const;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
+
     QVariant data(const QModelIndex &index, int role) const;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
-    void setFunctions(QList<RFunction> functions);
+    void beginReload()      { beginResetModel(); }
+    void endReload()        { endResetModel(); }
 
 private slots:
     void cursorAddressChanged(RVA addr);
@@ -79,6 +86,7 @@ private:
 
     QList<RFunction> functions;
     FunctionModel function_model;
+    FunctionModel nested_function_model;
 };
 
 

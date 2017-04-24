@@ -10,52 +10,119 @@
 #include <QDebug>
 #include <QString>
 
-FunctionModel::FunctionModel(QList<RFunction> *functions, MainWindow *main, QObject *parent)
-        : QAbstractListModel(parent)
+FunctionModel::FunctionModel(QList<RFunction> *functions, bool nested, MainWindow *main, QObject *parent)
+        : functions(functions),
+          main(main),
+          nested(nested),
+          QAbstractItemModel(parent)
 {
-    this->main = main;
-
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(cursorAddressChanged(RVA)));
+}
+
+QModelIndex FunctionModel::index(int row, int column, const QModelIndex &parent) const
+{
+    if(!parent.isValid())
+        return createIndex(row, column, (quintptr)0); // root function nodes have id = 0
+
+    return createIndex(row, column, (quintptr)(parent.row() + 1)); // sub-nodes have id = function index + 1
+}
+
+QModelIndex FunctionModel::parent(const QModelIndex &index) const
+{
+    if(!index.isValid() || index.column() != 0)
+        return QModelIndex();
+
+    if(index.internalId() == 0) // root function node
+        return QModelIndex();
+    else // sub-node
+        return this->index((int)(index.internalId()-1), 0);
 }
 
 int FunctionModel::rowCount(const QModelIndex &parent) const
 {
-    return functions.count();
+    if(!parent.isValid())
+        return functions->count();
+
+    if(nested)
+    {
+        if(parent.internalId() == 0)
+            return 2;
+        return 0;
+    }
+    else
+        return 0;
 }
 
 int FunctionModel::columnCount(const QModelIndex &parent) const
 {
-    return 3;
+    if(nested)
+        return 1;
+    else
+        return 3;
 }
+
 
 QVariant FunctionModel::data(const QModelIndex &index, int role) const
 {
     if(!index.isValid())
         return QVariant();
 
-    if(index.row() >= functions.count())
-        return QVariant();
+    int function_index;
+    bool subnode;
+    if(index.internalId() != 0) // sub-node
+    {
+        function_index = index.parent().row();
+        subnode = true;
+    }
+    else // root function node
+    {
+        function_index = index.row();
+        subnode = false;
+    }
 
-    const RFunction &function = functions[index.row()];
+    const RFunction &function = functions->at(function_index);
+
+    if(function_index >= functions->count())
+        return QVariant();
 
     switch(role)
     {
         case Qt::DisplayRole:
-            switch(index.column())
+            if(nested)
             {
-                case 0:
-                    return RAddressString(function.offset);
-                case 1:
-                    return RSizeString(function.size);
-                case 2:
+                if(subnode)
+                {
+                    switch(index.row())
+                    {
+                        case 0:
+                            return tr("Offset: %1").arg(RAddressString(function.offset));
+                        case 1:
+                            return tr("Size: %1").arg(RSizeString(function.size));
+                        default:
+                            return QVariant();
+                    }
+                }
+                else
                     return function.name;
-                default:
-                    return QVariant();
+            }
+            else
+            {
+                switch(index.column())
+                {
+                    case 0:
+                        return RAddressString(function.offset);
+                    case 1:
+                        return RSizeString(function.size);
+                    case 2:
+                        return function.name;
+                    default:
+                        return QVariant();
+                }
             }
 
         case Qt::DecorationRole:
-            if(function.name.contains("imp") && index.column() == 2)
-                return QColor(Qt::yellow);
+            //if(function.name.contains("imp") && index.column() == 2)
+            //    return QColor(Qt::yellow);
             return QVariant();
 
         case Qt::FontRole:
@@ -65,7 +132,9 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
             if(function.contains(main->getCursorAddress()))
                 weight = QFont::Bold;
 
-            return QFont("Noto", 12, weight);
+            QFont font = QFont("Noto", 9, weight);
+            //printf("font: %s\n", font.toString().toLocal8Bit().constData());
+            return font;
         }
 
         case Qt::ToolTipRole:
@@ -83,9 +152,6 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
             }
             return QVariant();
         }
-
-        //case Qt::BackgroundRole:
-        //    return QBrush(Qt::green);
 
         case Qt::UserRole:
             return QVariant::fromValue(function);
@@ -115,16 +181,9 @@ QVariant FunctionModel::headerData(int section, Qt::Orientation orientation, int
     return QVariant();
 }
 
-void FunctionModel::setFunctions(QList<RFunction> functions)
+void FunctionModel::cursorAddressChanged(RVA)
 {
-    beginResetModel();
-    this->functions = functions;
-    endResetModel();
-}
-
-void FunctionModel::cursorAddressChanged(RVA addr)
-{
-    emit dataChanged(index(0), index(rowCount(), columnCount()));
+    emit dataChanged(index(0, 0), index(rowCount(), columnCount()));
 }
 
 
@@ -132,24 +191,27 @@ void FunctionModel::cursorAddressChanged(RVA addr)
 FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::FunctionsWidget),
-    function_model(&functions, main, this)
+    function_model(&functions, false, main, this),
+    nested_function_model(&functions, true, main, this)
 {
     ui->setupUi(this);
 
     // Radare core found in:
     this->main = main;
 
-    ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    //ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->functionsTreeView->setModel(&function_model);
+    ui->nestedFunctionsTreeView->setModel(&nested_function_model);
 
     //this->functionsTreeWidget->setFont(QFont("Monospace", 8));
     // Set Functions context menu
     connect(ui->functionsTreeView, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showFunctionsContextMenu(const QPoint &)));
-    connect(ui->nestedFunctionsTree, SIGNAL(customContextMenuRequested(const QPoint &)),
+    connect(ui->nestedFunctionsTreeView, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showFunctionsContextMenu(const QPoint &)));
 
     connect(ui->functionsTreeView, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(on_functionsTreeView_itemDoubleClicked(const QModelIndex &)));
+    connect(ui->nestedFunctionsTreeView, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(on_functionsTreeView_itemDoubleClicked(const QModelIndex &)));
 
     // Hide the tabs
     QTabBar *tabs = ui->tabWidget->tabBar();
@@ -173,29 +235,15 @@ FunctionsWidget::~FunctionsWidget()
 
 void FunctionsWidget::fillFunctions()
 {
+    function_model.beginReload();
+    nested_function_model.beginReload();
     functions = this->main->core->getAllFunctions();
+    function_model.endReload();
+    nested_function_model.endReload();
 
-    function_model.setFunctions(functions);
-    // TODO this->main->adjustColumns(this->functionsTreeWidget);
-
-    ui->nestedFunctionsTree->clear();
-
-    for (auto i : functions)
-    {
-        QTreeWidgetItem *item;
-
-        // Add nested function
-        item = new QTreeWidgetItem(ui->nestedFunctionsTree);
-        item->setText(0, i.name);
-        QTreeWidgetItem *size_it = new QTreeWidgetItem();
-        size_it->setText(0, "Offset: " + RAddressString(i.offset));
-        item->addChild(size_it);
-        QTreeWidgetItem *off_it = new QTreeWidgetItem();
-        off_it->setText(0, "Size: " + RSizeString(i.size));
-        item->addChild(off_it);
-        ui->nestedFunctionsTree->addTopLevelItem(item);
-    }
-    ui->nestedFunctionsTree->sortByColumn(0, Qt::AscendingOrder);
+    // resize offset and size columns
+    ui->functionsTreeView->resizeColumnToContents(0);
+    ui->functionsTreeView->resizeColumnToContents(1);
 
     addTooltips();
 }
