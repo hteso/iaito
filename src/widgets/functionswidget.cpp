@@ -54,8 +54,8 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
             }
 
         case Qt::DecorationRole:
-            //if(function.name.contains("imp") && index.column() == 2)
-            //    return QColor(Qt::yellow);
+            if(function.name.contains("imp") && index.column() == 2)
+                return QColor(Qt::yellow);
             return QVariant();
 
         case Qt::FontRole:
@@ -65,7 +65,7 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
             if(function.contains(main->getCursorAddress()))
                 weight = QFont::Bold;
 
-            return QFont("Noto", 9, weight);
+            return QFont("Noto", 12, weight);
         }
 
         case Qt::ToolTipRole:
@@ -173,16 +173,16 @@ FunctionsWidget::~FunctionsWidget()
 
 void FunctionsWidget::fillFunctions()
 {
-    function_model.setFunctions(this->main->core->getAllFunctions());
+    functions = this->main->core->getAllFunctions();
 
-    /*this->functionsTreeWidget->clear();
+    function_model.setFunctions(functions);
+    // TODO this->main->adjustColumns(this->functionsTreeWidget);
+
     ui->nestedFunctionsTree->clear();
 
     for (auto i : functions)
     {
-        // Add list function
-        QTreeWidgetItem *item = this->main->appendRow(this->functionsTreeWidget, RAddressString(i.offset), RSizeString(i.size), i.name);
-        item->setData(0, Qt::UserRole, QVariant::fromValue(i));
+        QTreeWidgetItem *item;
 
         // Add nested function
         item = new QTreeWidgetItem(ui->nestedFunctionsTree);
@@ -195,11 +195,9 @@ void FunctionsWidget::fillFunctions()
         item->addChild(off_it);
         ui->nestedFunctionsTree->addTopLevelItem(item);
     }
-    this->functionsTreeWidget->sortByColumn(3, Qt::AscendingOrder);
     ui->nestedFunctionsTree->sortByColumn(0, Qt::AscendingOrder);
-    this->main->adjustColumns(this->functionsTreeWidget);
 
-    addTooltips();*/
+    addTooltips();
 }
 
 void FunctionsWidget::on_functionsTreeView_itemDoubleClicked(const QModelIndex &index)

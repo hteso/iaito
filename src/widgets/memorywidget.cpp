@@ -536,12 +536,12 @@ void MemoryWidget::refreshDisasm(const QString &offset)
     QString s = this->normalize_addr(this->main->core->cmd("s"));
     //this->main->add_debug_output("Offset to search: " + s);
     this->disasTextEdit->ensureCursorVisible();
-    this->disasTextEdit->moveCursor(QTextCursor::End);
+    /*this->disasTextEdit->moveCursor(QTextCursor::End);
 
     while (this->disasTextEdit->find(QRegExp("^" + s), QTextDocument::FindBackward))
     {
         this->disasTextEdit->moveCursor(QTextCursor::StartOfWord, QTextCursor::MoveAnchor);
-    }
+    }*/
 
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     connect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
@@ -1563,7 +1563,7 @@ void MemoryWidget::setFcnName(RVA addr)
     fcn = this->main->core->functionAt(addr);
     if (ok && fcn)
     {
-        QString segment = this->main->core->cmd("S. @ " + addr).split(" ").last();
+        QString segment = this->main->core->cmd("S. @ " + QString::number(addr)).split(" ").last();
         addr_string = segment.trimmed() + ":" + fcn->name;
     }
     else

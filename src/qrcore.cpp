@@ -231,7 +231,10 @@ QJsonDocument QRCore::cmdj(const QString &str)
     QJsonDocument doc = res ? QJsonDocument::fromJson(resString.toUtf8(), &jsonError) : QJsonDocument();
 
     if(jsonError.error != QJsonParseError::NoError)
+    {
         eprintf("Failed to parse JSON: %s\n", jsonError.errorString().toLocal8Bit().constData());
+        eprintf("%s\n", resString.toLocal8Bit().constData());
+    }
 
     r_mem_free(res);
     return doc;
