@@ -10,12 +10,16 @@
 #include <QDebug>
 #include <QString>
 
-FunctionModel::FunctionModel(QList<RFunction> *functions, bool nested, MainWindow *main, QObject *parent)
+FunctionModel::FunctionModel(QList<RFunction> *functions, bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent)
         : functions(functions),
           main(main),
           nested(nested),
+          default_font(default_font),
+          highlight_font(highlight_font),
           QAbstractItemModel(parent)
 {
+    current_index = -1;
+
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(cursorAddressChanged(RVA)));
 }
 
@@ -126,16 +130,9 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
             return QVariant();
 
         case Qt::FontRole:
-        {
-            int weight = -1;
-
-            if(function.contains(main->getCursorAddress()))
-                weight = QFont::Bold;
-
-            QFont font = QFont("Noto", 9, weight);
-            //printf("font: %s\n", font.toString().toLocal8Bit().constData());
-            return font;
-        }
+            if(current_index == function_index)
+                return highlight_font;
+            return default_font;
 
         case Qt::ToolTipRole:
         {
@@ -183,25 +180,54 @@ QVariant FunctionModel::headerData(int section, Qt::Orientation orientation, int
 
 void FunctionModel::cursorAddressChanged(RVA)
 {
+    updateCurrentIndex();
     emit dataChanged(index(0, 0), index(rowCount(), columnCount()));
+}
+
+void FunctionModel::updateCurrentIndex()
+{
+    RVA addr = main->getCursorAddress();
+
+    int index = -1;
+    RVA offset = 0;
+
+    for(int i=0; i<functions->count(); i++)
+    {
+        const RFunction &function = functions->at(i);
+
+        if(function.contains(addr)
+           && function.offset >= offset)
+        {
+            offset = function.offset;
+            index = i;
+        }
+    }
+
+    current_index = index;
 }
 
 
 
 FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     QDockWidget(parent),
-    ui(new Ui::FunctionsWidget),
-    function_model(&functions, false, main, this),
-    nested_function_model(&functions, true, main, this)
+    ui(new Ui::FunctionsWidget)
 {
     ui->setupUi(this);
 
     // Radare core found in:
     this->main = main;
 
+    QFontInfo font_info = ui->functionsTreeView->fontInfo();
+    QFont default_font = QFont(font_info.family(), font_info.pointSize());
+    QFont highlight_font = QFont(font_info.family(), font_info.pointSize(), QFont::Bold);
+
+    function_model = new FunctionModel(&functions, false, default_font, highlight_font, main, this);
+    nested_function_model = new FunctionModel(&functions, true, default_font, highlight_font, main, this);
+
     //ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
-    ui->functionsTreeView->setModel(&function_model);
-    ui->nestedFunctionsTreeView->setModel(&nested_function_model);
+    ui->functionsTreeView->setModel(function_model);
+    ui->nestedFunctionsTreeView->setModel(nested_function_model);
+
 
     //this->functionsTreeWidget->setFont(QFont("Monospace", 8));
     // Set Functions context menu
@@ -235,11 +261,11 @@ FunctionsWidget::~FunctionsWidget()
 
 void FunctionsWidget::fillFunctions()
 {
-    function_model.beginReload();
-    nested_function_model.beginReload();
+    function_model->beginReload();
+    nested_function_model->beginReload();
     functions = this->main->core->getAllFunctions();
-    function_model.endReload();
-    nested_function_model.endReload();
+    function_model->endReload();
+    nested_function_model->endReload();
 
     // resize offset and size columns
     ui->functionsTreeView->resizeColumnToContents(0);
@@ -250,7 +276,7 @@ void FunctionsWidget::fillFunctions()
 
 void FunctionsWidget::on_functionsTreeView_itemDoubleClicked(const QModelIndex &index)
 {
-    RFunction function = function_model.data(index, Qt::UserRole).value<RFunction>();
+    RFunction function = index.data(Qt::UserRole).value<RFunction>();
     this->main->seek(function.offset, function.name);
     this->main->memoryDock->raise();
 }

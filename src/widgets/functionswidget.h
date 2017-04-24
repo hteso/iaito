@@ -22,10 +22,14 @@ private:
 
     QList<RFunction> *functions;
 
+    QFont highlight_font;
+    QFont default_font;
     bool nested;
 
+    int current_index;
+
 public:
-    FunctionModel(QList<RFunction> *functions, bool nested, MainWindow *main, QObject *parent = 0);
+    FunctionModel(QList<RFunction> *functions, bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent = 0);
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &index) const;
@@ -37,7 +41,9 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
     void beginReload()      { beginResetModel(); }
-    void endReload()        { endResetModel(); }
+    void endReload()        { updateCurrentIndex(); endResetModel(); }
+
+    void updateCurrentIndex();
 
 private slots:
     void cursorAddressChanged(RVA addr);
@@ -85,8 +91,8 @@ private:
     MainWindow      *main;
 
     QList<RFunction> functions;
-    FunctionModel function_model;
-    FunctionModel nested_function_model;
+    FunctionModel *function_model;
+    FunctionModel *nested_function_model;
 };
 
 

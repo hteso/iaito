@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>1148</width>
+    <height>897</height>
    </rect>
   </property>
   <property name="styleSheet">
@@ -68,6 +68,11 @@ border-top: 0px;
         </property>
         <item>
          <widget class="QTreeView" name="functionsTreeView">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="contextMenuPolicy">
            <enum>Qt::CustomContextMenu</enum>
           </property>
@@ -142,6 +147,11 @@ QToolTip
         </property>
         <item>
          <widget class="QTreeView" name="nestedFunctionsTreeView">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="contextMenuPolicy">
            <enum>Qt::CustomContextMenu</enum>
           </property>

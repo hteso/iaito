@@ -1568,7 +1568,7 @@ void MemoryWidget::setFcnName(RVA addr)
     }
     else
     {
-        addr_string = RAddressString(addr);
+        addr_string = main->core->cmdFunctionAt(addr);
     }
 
     ui->fcnNameEdit->setText(addr_string);
