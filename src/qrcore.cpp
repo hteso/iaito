@@ -357,6 +357,13 @@ void QRCore::analyze(int level)
 void QRCore::renameFunction(QString prev_name, QString new_name)
 {
     cmd("afn " + new_name + " " + prev_name);
+    emit functionRenamed(prev_name, new_name);
+}
+
+void QRCore::setComment(RVA addr, QString cmt)
+{
+    //r_meta_add (core->anal, 'C', addr, 1, cmt.toUtf8());
+    cmd("CC " + cmt + " @ " + QString::number(addr));
 }
 
 void QRCore::setComment(QString addr, QString cmt)

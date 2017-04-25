@@ -3,6 +3,7 @@
 
 #include <QDockWidget>
 #include <QTreeWidget>
+#include <QSortFilterProxyModel>
 #include "qrcore.h"
 
 class MainWindow;
@@ -15,12 +16,12 @@ namespace Ui
 
 class FunctionModel : public QAbstractItemModel
 {
-Q_OBJECT
+    Q_OBJECT
 
 private:
     MainWindow *main;
 
-    QList<RFunction> *functions;
+    QList<RFunction> functions;
 
     QFont highlight_font;
     QFont default_font;
@@ -29,7 +30,7 @@ private:
     int current_index;
 
 public:
-    FunctionModel(QList<RFunction> *functions, bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent = 0);
+    FunctionModel(bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent = 0);
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &index) const;
@@ -40,14 +41,33 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
-    void beginReload()      { beginResetModel(); }
-    void endReload()        { updateCurrentIndex(); endResetModel(); }
+    //void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
+
+    void setFunctions(QList<RFunction> functions);
 
     void updateCurrentIndex();
 
+    bool isNested()     { return nested; }
+
 private slots:
     void cursorAddressChanged(RVA addr);
+    void functionRenamed(QString prev_name, QString new_name);
+
 };
+
+
+class FunctionSortFilterProxyModel : public QSortFilterProxyModel
+{
+    Q_OBJECT
+
+public:
+    FunctionSortFilterProxyModel(FunctionModel *source_model, QObject *parent = 0);
+
+protected:
+    bool filterAcceptsRow(int row, const QModelIndex &parent) const override;
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+};
+
 
 
 class FunctionsWidget : public QDockWidget
@@ -59,7 +79,6 @@ public:
     ~FunctionsWidget();
 
     void fillFunctions();
-    void addTooltips();
 
 private slots:
     void on_functionsTreeView_itemDoubleClicked(const QModelIndex &index);
@@ -79,20 +98,23 @@ private slots:
 
     void on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *item, int column);
 
-    void on_offsetChanged(RVA offset);
-    void on_cursorAddressChanged(RVA address);
-
 protected:
     void resizeEvent(QResizeEvent *event) override;
 
 private:
+    QTreeView *getCurrentTreeView();
+
     Ui::FunctionsWidget *ui;
 
     MainWindow      *main;
 
     QList<RFunction> functions;
+
     FunctionModel *function_model;
+    FunctionSortFilterProxyModel *function_proxy_model;
+
     FunctionModel *nested_function_model;
+    FunctionSortFilterProxyModel *nested_function_proxy_model;
 };
 
 

@@ -6,13 +6,14 @@
 #include "dialogs/xrefsdialog.h"
 #include "mainwindow.h"
 
+#include <algorithm>
+
 #include <QMenu>
 #include <QDebug>
 #include <QString>
 
-FunctionModel::FunctionModel(QList<RFunction> *functions, bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent)
-        : functions(functions),
-          main(main),
+FunctionModel::FunctionModel(bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent)
+        : main(main),
           nested(nested),
           default_font(default_font),
           highlight_font(highlight_font),
@@ -21,6 +22,14 @@ FunctionModel::FunctionModel(QList<RFunction> *functions, bool nested, QFont def
     current_index = -1;
 
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(cursorAddressChanged(RVA)));
+    connect(main->core, SIGNAL(functionRenamed(QString, QString)), this, SLOT(functionRenamed(QString, QString)));
+}
+
+void FunctionModel::setFunctions(QList<RFunction> functions)
+{
+    beginResetModel();
+    this->functions = functions;
+    endResetModel();
 }
 
 QModelIndex FunctionModel::index(int row, int column, const QModelIndex &parent) const
@@ -45,7 +54,7 @@ QModelIndex FunctionModel::parent(const QModelIndex &index) const
 int FunctionModel::rowCount(const QModelIndex &parent) const
 {
     if(!parent.isValid())
-        return functions->count();
+        return functions.count();
 
     if(nested)
     {
@@ -84,9 +93,9 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
         subnode = false;
     }
 
-    const RFunction &function = functions->at(function_index);
+    const RFunction &function = functions.at(function_index);
 
-    if(function_index >= functions->count())
+    if(function_index >= functions.count())
         return QVariant();
 
     switch(role)
@@ -162,16 +171,23 @@ QVariant FunctionModel::headerData(int section, Qt::Orientation orientation, int
 {
     if(role == Qt::DisplayRole && orientation == Qt::Horizontal)
     {
-        switch(section)
+        if(nested)
         {
-            case 0:
-                return tr("Offset");
-            case 1:
-                return tr("Size");
-            case 2:
-                return tr("Name");
-            default:
-                return QVariant();
+            return tr("Name");
+        }
+        else
+        {
+            switch (section)
+            {
+                case 0:
+                    return tr("Offset");
+                case 1:
+                    return tr("Size");
+                case 2:
+                    return tr("Name");
+                default:
+                    return QVariant();
+            }
         }
     }
 
@@ -191,9 +207,9 @@ void FunctionModel::updateCurrentIndex()
     int index = -1;
     RVA offset = 0;
 
-    for(int i=0; i<functions->count(); i++)
+    for(int i=0; i<functions.count(); i++)
     {
-        const RFunction &function = functions->at(i);
+        const RFunction &function = functions.at(i);
 
         if(function.contains(addr)
            && function.offset >= offset)
@@ -205,6 +221,70 @@ void FunctionModel::updateCurrentIndex()
 
     current_index = index;
 }
+
+void FunctionModel::functionRenamed(QString prev_name, QString new_name)
+{
+    for(int i=0; i<functions.count(); i++)
+    {
+        RFunction &function = functions[i];
+        if(function.name == prev_name)
+        {
+            function.name = new_name;
+            emit dataChanged(index(i, 0), index(i, columnCount()));
+            return;
+        }
+    }
+}
+
+
+
+
+FunctionSortFilterProxyModel::FunctionSortFilterProxyModel(FunctionModel *source_model, QObject *parent)
+        : QSortFilterProxyModel(parent)
+{
+    setSourceModel(source_model);
+}
+
+bool FunctionSortFilterProxyModel::filterAcceptsRow(int row, const QModelIndex &parent) const
+{
+    return true;
+}
+
+
+bool FunctionSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
+{
+    if(!left.isValid() || !right.isValid())
+        return false;
+
+    if(left.parent().isValid() || right.parent().isValid())
+        return left.row() < right.row();
+
+    RFunction left_function = left.data(Qt::UserRole).value<RFunction>();
+    RFunction right_function = right.data(Qt::UserRole).value<RFunction>();
+
+    if(static_cast<FunctionModel *>(sourceModel())->isNested())
+    {
+        return left_function.name < right_function.name;
+    }
+    else
+    {
+        switch (left.column())
+        {
+            case 1:
+                if (left_function.size != right_function.size)
+                    return left_function.size < right_function.size;
+                // fallthrough
+            case 0:
+                return left_function.offset < right_function.offset;
+            case 2:
+                return left_function.name < right_function.name;
+            default:
+                return false;
+        }
+    }
+}
+
+
 
 
 
@@ -221,12 +301,16 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     QFont default_font = QFont(font_info.family(), font_info.pointSize());
     QFont highlight_font = QFont(font_info.family(), font_info.pointSize(), QFont::Bold);
 
-    function_model = new FunctionModel(&functions, false, default_font, highlight_font, main, this);
-    nested_function_model = new FunctionModel(&functions, true, default_font, highlight_font, main, this);
+    function_model = new FunctionModel(false, default_font, highlight_font, main, this);
+    function_proxy_model = new FunctionSortFilterProxyModel(function_model, this);
+    ui->functionsTreeView->setModel(function_proxy_model);
+
+    nested_function_model = new FunctionModel(true, default_font, highlight_font, main, this);
+    nested_function_proxy_model = new FunctionSortFilterProxyModel(nested_function_model, this);
+    ui->nestedFunctionsTreeView->setModel(nested_function_proxy_model);
 
     //ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
-    ui->functionsTreeView->setModel(function_model);
-    ui->nestedFunctionsTreeView->setModel(nested_function_model);
+
 
 
     //this->functionsTreeWidget->setFont(QFont("Monospace", 8));
@@ -249,9 +333,6 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     this->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showTitleContextMenu(const QPoint &)));
-
-    connect(this->main->core, SIGNAL(offsetChanged(RVA)), this, SLOT(on_offsetChanged(RVA)));
-    connect(this->main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(on_cursorAddressChanged(RVA)));
 }
 
 FunctionsWidget::~FunctionsWidget()
@@ -261,17 +342,21 @@ FunctionsWidget::~FunctionsWidget()
 
 void FunctionsWidget::fillFunctions()
 {
-    function_model->beginReload();
-    nested_function_model->beginReload();
     functions = this->main->core->getAllFunctions();
-    function_model->endReload();
-    nested_function_model->endReload();
+    function_model->setFunctions(functions);
+    nested_function_model->setFunctions(functions);
 
     // resize offset and size columns
     ui->functionsTreeView->resizeColumnToContents(0);
     ui->functionsTreeView->resizeColumnToContents(1);
+}
 
-    addTooltips();
+QTreeView *FunctionsWidget::getCurrentTreeView()
+{
+    if (ui->tabWidget->currentIndex() == 0)
+        return ui->functionsTreeView;
+    else
+        return ui->nestedFunctionsTreeView;
 }
 
 void FunctionsWidget::on_functionsTreeView_itemDoubleClicked(const QModelIndex &index)
@@ -283,8 +368,10 @@ void FunctionsWidget::on_functionsTreeView_itemDoubleClicked(const QModelIndex &
 
 void FunctionsWidget::showFunctionsContextMenu(const QPoint &pt)
 {
+    QTreeView *treeView = getCurrentTreeView();
+
     // Set functions popup menu
-    /*QMenu *menu = new QMenu(ui->functionsTreeWidget);
+    QMenu *menu = new QMenu(ui->functionsTreeView);
     menu->clear();
     menu->addAction(ui->actionDisasAdd_comment);
     menu->addAction(ui->actionFunctionsRename);
@@ -292,114 +379,55 @@ void FunctionsWidget::showFunctionsContextMenu(const QPoint &pt)
     menu->addSeparator();
     menu->addAction(ui->action_References);
 
-    if (ui->tabWidget->currentIndex() == 0)
-    {
-        this->functionsTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-        menu->exec(ui->functionsTreeWidget->mapToGlobal(pt));
-    }
-    else
-    {
-        ui->nestedFunctionsTree->setContextMenuPolicy(Qt::CustomContextMenu);
-        menu->exec(ui->nestedFunctionsTree->mapToGlobal(pt));
-    }
-    delete menu;*/
+    treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    menu->exec(treeView->mapToGlobal(pt));
+
+    delete menu;
 }
 
 void FunctionsWidget::on_actionDisasAdd_comment_triggered()
 {
-    /*QString fcn_name = "";
+    // Get selected item in functions tree view
+    QTreeView *treeView = getCurrentTreeView();
+    RFunction function = treeView->selectionModel()->currentIndex().data(Qt::UserRole).value<RFunction>();
+
     // Create dialog
     CommentsDialog *c = new CommentsDialog(this);
-    // Get selected item in functions tree widget
-    if (ui->tabWidget->currentIndex() == 0)
-    {
-        QList<QTreeWidgetItem *> selected_rows = ui->functionsTreeWidget->selectedItems();
-        // Get selected function name
-        fcn_name = selected_rows.first()->text(3);
-    }
-    else
-    {
-        QList<QTreeWidgetItem *> selected_rows = ui->nestedFunctionsTree->selectedItems();
-        // Get selected function name
-        fcn_name = selected_rows.first()->text(0);
-    }
+
     if (c->exec())
     {
         // Get new function name
         QString comment = c->getComment();
-        this->main->add_debug_output("Comment: " + comment + " at: " + fcn_name);
+        this->main->add_debug_output("Comment: " + comment + " at: " + function.name);
         // Rename function in r2 core
-        this->main->core->setComment(fcn_name, comment);
+        this->main->core->setComment(function.offset, comment);
         // Seek to new renamed function
-        this->main->seek(fcn_name);
+        this->main->seek(function.offset, function.name);
         // TODO: Refresh functions tree widget
     }
-    this->main->refreshComments();*/
+    this->main->refreshComments();
 }
 
-void FunctionsWidget::addTooltips()
-{
-/*
-    // Add comments to list functions
-    QList<QTreeWidgetItem *> clist = this->functionsTreeWidget->findItems("*", Qt::MatchWildcard, 3);
-    foreach (QTreeWidgetItem *item, clist)
-    {
-        QString name = item->text(3);
-        QList<QString> info = this->main->core->cmd("afi @ " + name).split("\n");
-        if (info.length() > 2)
-        {
-            QString size = info[4].split(" ")[1];
-            QString complex = info[8].split(" ")[1];
-            QString bb = info[11].split(" ")[1];
-            item->setToolTip(3, "Summary:\n\n    Size: " + size +
-                             "\n    Cyclomatic complexity: " + complex +
-                             "\n    Basic blocks: " + bb +
-                             "\n\nDisasm preview:\n\n" + this->main->core->cmd("pdi 10 @ " + name) +
-                             "\nStrings:\n\n" + this->main->core->cmd("pdsf @ " + name));
-            //"\nStrings:\n\n" + this->main->core->cmd("pds @ " + name + "!$F"));
-        }
-    }
-
-    // Add comments to nested functions
-    QList<QTreeWidgetItem *> nlist = ui->nestedFunctionsTree->findItems("*", Qt::MatchWildcard, 0);
-    foreach (QTreeWidgetItem *item, nlist)
-    {
-        QString name = item->text(0);
-        QList<QString> info = this->main->core->cmd("afi @ " + name).split("\n");
-        if (info.length() > 2)
-        {
-            QString size = info[4].split(" ")[1];
-            QString complex = info[8].split(" ")[1];
-            QString bb = info[11].split(" ")[1];
-            item->setToolTip(0, "Summary:\n\n    Size: " + size +
-                             "\n    Cyclomatic complexity: " + complex +
-                             "\n    Basic blocks: " + bb +
-                             "\n\nDisasm preview:\n\n" + this->main->core->cmd("pdi 10 @ " + name) +
-                             "\nStrings:\n\n" + this->main->core->cmd("pdsf @ " + name));
-            //"\nStrings:\n\n" + this->main->core->cmd("pds @ " + name + "!$F"));
-        }
-    }*/
-}
 
 void FunctionsWidget::on_actionFunctionsRename_triggered()
 {
-    /*// Create dialog
+    // Get selected item in functions tree view
+    QTreeView *treeView = getCurrentTreeView();
+    RFunction function = treeView->selectionModel()->currentIndex().data(Qt::UserRole).value<RFunction>();
+
+    // Create dialog
     RenameDialog *r = new RenameDialog(this);
-    // Get selected item in functions tree widget
-    QList<QTreeWidgetItem *> selected_rows = ui->functionsTreeWidget->selectedItems();
-    // Get selected function name
-    QString old_name = selected_rows.first()->text(3);
+
     // Set function name in dialog
-    r->setFunctionName(old_name);
+    r->setFunctionName(function.name);
     // If user accepted
     if (r->exec())
     {
         // Get new function name
         QString new_name = r->getFunctionName();
         // Rename function in r2 core
-        this->main->core->renameFunction(old_name, new_name);
-        // Change name in functions tree widget
-        selected_rows.first()->setText(3, new_name);
+        this->main->core->renameFunction(function.name, new_name);
+
         // Scroll to show the new name in functions tree widget
         //
         // QAbstractItemView::EnsureVisible
@@ -407,22 +435,22 @@ void FunctionsWidget::on_actionFunctionsRename_triggered()
         // QAbstractItemView::PositionAtBottom
         // QAbstractItemView::PositionAtCenter
         //
-        ui->functionsTreeWidget->scrollToItem(selected_rows.first(), QAbstractItemView::PositionAtTop);
+        //ui->functionsTreeWidget->scrollToItem(selected_rows.first(), QAbstractItemView::PositionAtTop);
         // Seek to new renamed function
         this->main->seek(new_name);
-    }*/
+    }
 }
 
 void FunctionsWidget::on_action_References_triggered()
 {
-    /*QList<QTreeWidgetItem *> selected_rows = ui->functionsTreeWidget->selectedItems();
-    // Get selected function address
-    QString address = selected_rows.first()->text(1);
+    // Get selected item in functions tree view
+    QTreeView *treeView = getCurrentTreeView();
+    RFunction function = treeView->selectionModel()->currentIndex().data(Qt::UserRole).value<RFunction>();
 
     //this->main->add_debug_output("Addr: " + address);
 
     // Get function for clicked offset
-    RAnalFunction *fcn = this->main->core->functionAt(address.toLongLong(0, 16));
+    RAnalFunction *fcn = this->main->core->functionAt(function.offset);
 
     XrefsDialog *x = new XrefsDialog(this->main, this);
     x->setWindowTitle("X-Refs for function " + QString::fromUtf8(fcn->name));
@@ -466,7 +494,7 @@ void FunctionsWidget::on_action_References_triggered()
         }
     }
     x->fillRefs(ret_refs, ret_xrefs);
-    x->exec();*/
+    x->exec();
 }
 
 void FunctionsWidget::showTitleContextMenu(const QPoint &pt)
@@ -513,14 +541,6 @@ void FunctionsWidget::on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *
     QString offset = item->child(0)->text(0).split(":")[1];
     this->main->seek(offset, name);
     this->main->memoryDock->raise();
-}
-
-void FunctionsWidget::on_offsetChanged(RVA offset)
-{
-}
-
-void FunctionsWidget::on_cursorAddressChanged(RVA address)
-{
 }
 
 void FunctionsWidget::resizeEvent(QResizeEvent *event)

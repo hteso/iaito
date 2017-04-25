@@ -88,6 +88,7 @@ public:
     QString cmd(const QString &str);
     QJsonDocument cmdj(const QString &str);
     void renameFunction(QString prev_name, QString new_name);
+    void setComment(RVA addr, QString cmt);
     void setComment(QString addr, QString cmt);
     void delComment(ut64 addr);
     QList<QList<QString>> getComments();
@@ -143,6 +144,8 @@ public:
 
 signals:
     void offsetChanged(RVA offset);
+
+    void functionRenamed(QString prev_name, QString new_name);
 
 public slots:
 
