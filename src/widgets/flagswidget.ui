@@ -71,11 +71,6 @@
     </item>
     <item>
      <widget class="QTreeWidget" name="flagsTreeWidget">
-      <property name="font">
-       <font>
-        <pointsize>12</pointsize>
-       </font>
-      </property>
       <property name="styleSheet">
        <string notr="true">QTreeWidget::item
 {
@@ -137,7 +132,7 @@ QTreeWidget::item:selected
       </column>
       <column>
        <property name="text">
-        <string notr="true">Comment</string>
+        <string notr="true">5</string>
        </property>
       </column>
      </widget>
