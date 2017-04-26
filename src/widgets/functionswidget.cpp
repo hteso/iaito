@@ -132,7 +132,7 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
         case Qt::DecorationRole:
             if(import_addresses->contains(function.offset) &&
                     (nested ? !index.parent().isValid() :index.column() == 2))
-                return QIcon(":/new/prefix1/img/icons/left.png");
+                return QIcon(":/img/icons/import_light.svg");
             return QVariant();
 
         case Qt::FontRole:
@@ -143,7 +143,8 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
         case Qt::ToolTipRole:
         {
             QList<QString> info = main->core->cmd("afi @ " + function.name).split("\n");
-            if (info.length() > 2) {
+            if (info.length() > 2)
+            {
                 QString size = info[4].split(" ")[1];
                 QString complex = info[8].split(" ")[1];
                 QString bb = info[11].split(" ")[1];
@@ -360,7 +361,7 @@ void FunctionsWidget::fillFunctions()
 
     import_addresses.clear();
     foreach(ImportDescription import, main->core->getAllImports())
-        import_addresses.insert(import.offset);
+        import_addresses.insert(import.plt);
 
     function_model->endReloadFunctions();
     nested_function_model->endReloadFunctions();
@@ -455,7 +456,7 @@ void FunctionsWidget::on_actionFunctionsRename_triggered()
         //
         //ui->functionsTreeWidget->scrollToItem(selected_rows.first(), QAbstractItemView::PositionAtTop);
         // Seek to new renamed function
-        this->main->seek(new_name);
+        this->main->seek(function.offset);
     }
 }
 

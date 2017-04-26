@@ -67,14 +67,47 @@ struct FunctionDescription
 
 struct ImportDescription
 {
-    RVA offset;
+    RVA plt;
     int ordinal;
     QString bind;
     QString type;
     QString name;
 };
 
+struct SymbolDescription
+{
+    RVA vaddr;
+    QString bind;
+    QString type;
+    QString name;
+};
+
+struct CommentDescription
+{
+    RVA offset;
+    QString name;
+};
+
+struct RelocDescription
+{
+    RVA vaddr;
+    RVA paddr;
+    QString type;
+    QString name;
+};
+
+struct StringDescription
+{
+    RVA vaddr;
+    QString string;
+};
+
 Q_DECLARE_METATYPE(FunctionDescription)
+Q_DECLARE_METATYPE(ImportDescription)
+Q_DECLARE_METATYPE(SymbolDescription)
+Q_DECLARE_METATYPE(CommentDescription)
+Q_DECLARE_METATYPE(RelocDescription)
+Q_DECLARE_METATYPE(StringDescription)
 
 class QRCore : public QObject
 {
@@ -100,7 +133,6 @@ public:
     void setComment(RVA addr, QString cmt);
     void setComment(QString addr, QString cmt);
     void delComment(ut64 addr);
-    QList<QList<QString>> getComments();
     QMap<QString, QList<QList<QString>>> getNestedComments();
     void setOptions(QString key);
     bool loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw, int va, int bits, int idx = 0, bool loadbin = false);
@@ -145,6 +177,10 @@ public:
     QList<RVA> getSeekHistory();
     QList<FunctionDescription> getAllFunctions();
     QList<ImportDescription> getAllImports();
+    QList<SymbolDescription> getAllSymbols();
+    QList<CommentDescription> getAllComments(QString type);
+    QList<RelocDescription> getAllRelocs();
+    QList<StringDescription> getAllStrings();
 
     RCoreLocked core() const;
 

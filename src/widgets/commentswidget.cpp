@@ -38,22 +38,22 @@ void CommentsWidget::on_commentsTreeWidget_itemDoubleClicked(QTreeWidgetItem *it
     QNOTUSED(column);
 
     // Get offset and name of item double clicked
-    // TODO: use this info to change disasm contents
-    QString offset = item->text(1);
-    QString name = item->text(2);
-    this->main->add_debug_output(offset + ": " + name);
-    this->main->seek(offset, name);
+    CommentDescription comment = item->data(0, Qt::UserRole).value<CommentDescription>();
+    this->main->add_debug_output(RAddressString(comment.offset) + ": " + comment.name);
+    this->main->seek(comment.offset, comment.name);
 }
 
 void CommentsWidget::refreshTree()
 {
     this->commentsTreeWidget->clear();
-    QList<QList<QString>> comments = this->main->core->getComments();
-    for (QList<QString> comment : comments)
+    QList<CommentDescription> comments = this->main->core->getAllComments("CCu");
+
+    for (CommentDescription comment : comments)
     {
-        this->main->add_debug_output(comment[1]);
-        QString fcn_name = this->main->core->cmdFunctionAt(comment[1]);
-        this->main->appendRow(this->commentsTreeWidget, comment[1], fcn_name, comment[0].remove('"'));
+        this->main->add_debug_output(RAddressString(comment.offset));
+        QString fcn_name = this->main->core->cmdFunctionAt(comment.offset);
+        QTreeWidgetItem *item = this->main->appendRow(this->commentsTreeWidget, RAddressString(comment.offset), fcn_name, comment.name);
+        item->setData(0, Qt::UserRole, QVariant::fromValue(comment));
     }
     this->main->adjustColumns(this->commentsTreeWidget);
 

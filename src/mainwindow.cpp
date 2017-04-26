@@ -298,7 +298,6 @@ void MainWindow::hideDummyColumns()
 
     this->importsDock->importsTreeWidget->setColumnHidden(0, true);
     this->symbolsDock->symbolsTreeWidget->setColumnHidden(0, true);
-    this->relocsDock->relocsTreeWidget->setColumnHidden(0, true);
     this->stringsDock->stringsTreeWidget->setColumnHidden(0, true);
     this->flagsDock->flagsTreeWidget->setColumnHidden(0, true);
     this->commentsDock->commentsTreeWidget->setColumnHidden(0, true);
@@ -511,44 +510,9 @@ void MainWindow::updateFrames()
 
     adjustColumns(this->importsDock->importsTreeWidget);
 
-    this->relocsDock->relocsTreeWidget->clear();
-    for (auto i : core->getList("bin", "relocs"))
-    {
-        QStringList pieces = i.split(",");
-        if (pieces.length() == 3)
-            appendRow(this->relocsDock->relocsTreeWidget, pieces[0], pieces[1], pieces[2]);
-    }
-    adjustColumns(this->relocsDock->relocsTreeWidget);
-
+    this->relocsDock->fillRelocs();
     this->symbolsDock->fillSymbols();
-
-    this->stringsDock->stringsTreeWidget->clear();
-    for (auto i : core->getList("bin", "strings"))
-    {
-        QStringList pieces = i.split(",");
-        if (pieces.length() == 2)
-            appendRow(this->stringsDock->stringsTreeWidget, pieces[0], pieces[1]);
-    }
-    adjustColumns(this->stringsDock->stringsTreeWidget);
-
-    this->commentsDock->commentsTreeWidget->clear();
-    QList<QList<QString>> comments = this->core->getComments();
-    for (QList<QString> comment : comments)
-    {
-        /*
-        QString name;
-        //this->add_debug_output("Comment: " + comment[1] + ": " + comment[0]);
-        RAnalFunction *fcn = this->core->functionAt(comment[1].toLongLong(0, 16));
-        if (fcn != NULL) {
-            name = fcn->name;
-        } else {
-            name = "";
-        }
-        */
-        QString fcn_name = this->core->cmdFunctionAt(comment[1]);
-        appendRow(this->commentsDock->commentsTreeWidget, comment[1], fcn_name, comment[0].remove('"'));
-    }
-    adjustColumns(this->commentsDock->commentsTreeWidget);
+    this->stringsDock->fillStrings();
 
     // Add nested comments
     QMap<QString, QList<QList<QString>>> cmts = this->core->getNestedComments();
@@ -871,6 +835,7 @@ void MainWindow::on_actionRefresh_Panels_triggered()
     this->updateFrames();
 }
 
+
 void MainWindow::seek(const QString &offset, const QString &name, bool raise_memory_dock)
 {
     add_debug_output("TODO: remove MainWindow::seek");
@@ -883,7 +848,7 @@ void MainWindow::seek(const QString &offset, const QString &name, bool raise_mem
     if(!ok)
         return;
 
-    seek(addr, name);
+    seek(addr, name, raise_memory_dock);
 }
 
 
@@ -901,6 +866,7 @@ void MainWindow::seek(const RVA offset, const QString &name, bool raise_memory_d
     refreshMem(RAddressString(offset));
     this->memoryDock->disasTextEdit->setFocus();
 
+    // Rise and shine baby!
     if(raise_memory_dock)
         this->memoryDock->raise();
 }

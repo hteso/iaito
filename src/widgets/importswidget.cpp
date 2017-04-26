@@ -47,7 +47,7 @@ void ImportsWidget::fillImports()
 {
     this->importsTreeWidget->clear();
     for (auto i : this->main->core->getAllImports())
-        this->main->appendRow(this->importsTreeWidget, RAddressString(i.offset), i.type, "", i.name);
+        this->main->appendRow(this->importsTreeWidget, RAddressString(i.plt), i.type, "", i.name);
 
     highlightUnsafe();
     this->main->adjustColumns(this->importsTreeWidget);

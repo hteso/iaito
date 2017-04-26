@@ -26,9 +26,19 @@ void StringsWidget::on_stringsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item
 
     // Get offset and name of item double clicked
     // TODO: use this info to change disasm contents
-    QString offset = item->text(1);
-    QString name = item->text(2);
-    this->main->seek(offset);
-    // Rise and shine baby!
-    this->main->memoryDock->raise();
+    StringDescription str = item->data(0, Qt::UserRole).value<StringDescription>();
+    this->main->seek(str.vaddr, NULL, true);
+}
+
+void StringsWidget::fillStrings()
+{
+    stringsTreeWidget->clear();
+
+    for (auto i : main->core->getAllStrings())
+    {
+        QTreeWidgetItem *item = main->appendRow(stringsTreeWidget, RAddressString(i.vaddr), i.string);
+        item->setData(0, Qt::UserRole, QVariant::fromValue(i));
+    }
+
+    main->adjustColumns(stringsTreeWidget);
 }

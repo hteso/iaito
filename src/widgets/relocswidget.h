@@ -19,6 +19,8 @@ public:
     explicit RelocsWidget(MainWindow *main, QWidget *parent = 0);
     ~RelocsWidget();
 
+    void fillRelocs();
+
     QTreeWidget    *relocsTreeWidget;
 
 private slots:
@@ -28,6 +30,7 @@ private:
     Ui::RelocsWidget *ui;
 
     MainWindow      *main;
+
 };
 
 #endif // RELOCSWIDGET_H
