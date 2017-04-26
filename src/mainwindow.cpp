@@ -871,7 +871,7 @@ void MainWindow::on_actionRefresh_Panels_triggered()
     this->updateFrames();
 }
 
-void MainWindow::seek(const QString &offset, const QString &name)
+void MainWindow::seek(const QString &offset, const QString &name, bool raise_memory_dock)
 {
     add_debug_output("TODO: remove MainWindow::seek");
 
@@ -887,7 +887,7 @@ void MainWindow::seek(const QString &offset, const QString &name)
 }
 
 
-void MainWindow::seek(const RVA offset, const QString &name)
+void MainWindow::seek(const RVA offset, const QString &name, bool raise_memory_dock)
 {
     if (name != NULL) {
         this->memoryDock->setWindowTitle(name);
@@ -900,6 +900,9 @@ void MainWindow::seek(const RVA offset, const QString &name)
 
     refreshMem(RAddressString(offset));
     this->memoryDock->disasTextEdit->setFocus();
+
+    if(raise_memory_dock)
+        this->memoryDock->raise();
 }
 
 void MainWindow::setup_mem()

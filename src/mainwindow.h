@@ -65,8 +65,8 @@ public:
     void readSettings();
     void setFilename(QString fn);
     //void setCore(QRCore *core);
-    void seek(const QString &offset, const QString &name = NULL);
-    void seek(const RVA offset, const QString &name = NULL);
+    void seek(const QString &offset, const QString &name = NULL, bool raise_memory_dock = false);
+    void seek(const RVA offset, const QString &name = NULL, bool raise_memory_dock = false);
     void updateFrames();
     void refreshFunctions();
     void refreshComments();

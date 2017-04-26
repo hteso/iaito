@@ -46,13 +46,9 @@ ImportsWidget::ImportsWidget(MainWindow *main, QWidget *parent) :
 void ImportsWidget::fillImports()
 {
     this->importsTreeWidget->clear();
-    for (auto i : this->main->core->getList("bin", "imports"))
-    {
-        QStringList a = i.split(",");
-        // ord,plt,name
-        if (a.length() == 6)
-            this->main->appendRow(this->importsTreeWidget, a[1], a[3], "", a[4]);
-    }
+    for (auto i : this->main->core->getAllImports())
+        this->main->appendRow(this->importsTreeWidget, RAddressString(i.offset), i.type, "", i.name);
+
     highlightUnsafe();
     this->main->adjustColumns(this->importsTreeWidget);
 }

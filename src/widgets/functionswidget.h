@@ -21,7 +21,9 @@ class FunctionModel : public QAbstractItemModel
 private:
     MainWindow *main;
 
-    QList<RFunction> functions;
+    QList<FunctionDescription> *functions;
+    QSet<RVA> *import_addresses;
+
 
     QFont highlight_font;
     QFont default_font;
@@ -30,7 +32,7 @@ private:
     int current_index;
 
 public:
-    FunctionModel(bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent = 0);
+    FunctionModel(QList<FunctionDescription> *functions, QSet<RVA> *import_addresses, bool nested, QFont default_font, QFont highlight_font, MainWindow *main, QObject *parent = 0);
 
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &index) const;
@@ -41,9 +43,8 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
-    //void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
-
-    void setFunctions(QList<RFunction> functions);
+    void beginReloadFunctions();
+    void endReloadFunctions();
 
     void updateCurrentIndex();
 
@@ -96,8 +97,6 @@ private slots:
 
     void on_actionVertical_triggered();
 
-    void on_nestedFunctionsTree_itemDoubleClicked(QTreeWidgetItem *item, int column);
-
 protected:
     void resizeEvent(QResizeEvent *event) override;
 
@@ -108,7 +107,8 @@ private:
 
     MainWindow      *main;
 
-    QList<RFunction> functions;
+    QList<FunctionDescription> functions;
+    QSet<RVA> import_addresses;
 
     FunctionModel *function_model;
     FunctionSortFilterProxyModel *function_proxy_model;

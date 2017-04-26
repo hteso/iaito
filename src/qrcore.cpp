@@ -817,27 +817,6 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
             if (ft && *ft)
                 ret << ft;
         }
-        else if (subtype == "imports")
-        {
-            QJsonArray importsArray = cmdj("iij").array();
-
-                    foreach(QJsonValue value, importsArray)
-                {
-                    QJsonObject importObject = value.toObject();
-                    unsigned long plt = (unsigned long)importObject["plt"].toVariant().toULongLong();
-                    int ordinal = importObject["ordinal"].toInt();
-
-                    QString final = QString("%1,%2,%3,%4,%5,").arg(
-                            QString::asprintf("%#o", ordinal),
-                            QString::asprintf("%#010lx", plt),
-                            importObject["bind"].toString(),
-                            importObject["type"].toString(),
-                            importObject["name"].toString());
-
-
-                    ret << final;
-                }
-        }
         else if (subtype == "entrypoints")
         {
             if (math("entry0") != 0)
@@ -966,10 +945,10 @@ QList<RVA> QRCore::getSeekHistory()
     return ret;
 }
 
-QList<RFunction> QRCore::getAllFunctions()
+QList<FunctionDescription> QRCore::getAllFunctions()
 {
     CORE_LOCK();
-    QList<RFunction> ret;
+    QList<FunctionDescription> ret;
 
     QJsonArray jsonArray = cmdj("aflj").array();
 
@@ -977,13 +956,39 @@ QList<RFunction> QRCore::getAllFunctions()
     {
         QJsonObject jsonObject = value.toObject();
 
-        RFunction function;
+        FunctionDescription function;
 
         function.offset = (RVA)jsonObject["offset"].toVariant().toULongLong();
         function.size = (RVA)jsonObject["size"].toVariant().toULongLong();
         function.name = jsonObject["name"].toString();
 
         ret << function;
+    }
+
+    return ret;
+}
+
+
+QList<ImportDescription> QRCore::getAllImports()
+{
+    CORE_LOCK();
+    QList<ImportDescription> ret;
+
+    QJsonArray importsArray = cmdj("iij").array();
+
+    foreach(QJsonValue value, importsArray)
+    {
+        QJsonObject importObject = value.toObject();
+
+        ImportDescription import;
+
+        import.offset = importObject["plt"].toVariant().toULongLong();
+        import.ordinal = importObject["ordinal"].toInt();
+        import.bind = importObject["bind"].toString();
+        import.type = importObject["type"].toString();
+        import.name = importObject["name"].toString();
+
+        ret << import;
     }
 
     return ret;

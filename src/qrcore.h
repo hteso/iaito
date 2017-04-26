@@ -56,7 +56,7 @@ inline QString RSizeString(RVA size)
     return QString::asprintf("%lld", size);
 }
 
-struct RFunction
+struct FunctionDescription
 {
     RVA offset;
     RVA size;
@@ -65,7 +65,16 @@ struct RFunction
     bool contains(RVA addr) const     { return addr >= offset && addr < offset + size; }
 };
 
-Q_DECLARE_METATYPE(RFunction)
+struct ImportDescription
+{
+    RVA offset;
+    int ordinal;
+    QString bind;
+    QString type;
+    QString name;
+};
+
+Q_DECLARE_METATYPE(FunctionDescription)
 
 class QRCore : public QObject
 {
@@ -134,7 +143,8 @@ public:
     QList<QString> getList(const QString &type, const QString &subtype = "");
 
     QList<RVA> getSeekHistory();
-    QList<RFunction> getAllFunctions();
+    QList<FunctionDescription> getAllFunctions();
+    QList<ImportDescription> getAllImports();
 
     RCoreLocked core() const;
 
