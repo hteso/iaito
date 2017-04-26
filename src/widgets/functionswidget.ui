@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>550</width>
-    <height>205</height>
+    <width>603</width>
+    <height>314</height>
    </rect>
   </property>
   <property name="styleSheet">
@@ -18,21 +18,6 @@
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="spacing">
-     <number>0</number>
-    </property>
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
-     <number>0</number>
-    </property>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="styleSheet">
@@ -190,6 +175,13 @@ QToolTip {
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="filterLineEdit">
+      <property name="placeholderText">
+       <string>Quick Filter</string>
+      </property>
      </widget>
     </item>
    </layout>

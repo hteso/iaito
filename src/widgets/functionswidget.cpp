@@ -247,7 +247,9 @@ FunctionSortFilterProxyModel::FunctionSortFilterProxyModel(FunctionModel *source
 
 bool FunctionSortFilterProxyModel::filterAcceptsRow(int row, const QModelIndex &parent) const
 {
-    return true;
+    QModelIndex index = sourceModel()->index(row, 0, parent);
+    RFunction function = index.data(Qt::UserRole).value<RFunction>();
+    return function.name.contains(filterRegExp().pattern());
 }
 
 
@@ -303,10 +305,12 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
 
     function_model = new FunctionModel(false, default_font, highlight_font, main, this);
     function_proxy_model = new FunctionSortFilterProxyModel(function_model, this);
+    connect(ui->filterLineEdit, SIGNAL(textChanged(const QString &)), function_proxy_model, SLOT(setFilterWildcard(const QString &)));
     ui->functionsTreeView->setModel(function_proxy_model);
 
     nested_function_model = new FunctionModel(true, default_font, highlight_font, main, this);
     nested_function_proxy_model = new FunctionSortFilterProxyModel(nested_function_model, this);
+    connect(ui->filterLineEdit, SIGNAL(textChanged(const QString &)), nested_function_proxy_model, SLOT(setFilterWildcard(const QString &)));
     ui->nestedFunctionsTreeView->setModel(nested_function_proxy_model);
 
     //ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
