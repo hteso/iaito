@@ -54,7 +54,7 @@ void CommentsWidget::on_commentsTreeWidget_itemDoubleClicked(QTreeWidgetItem *it
     // Get offset and name of item double clicked
     CommentDescription comment = item->data(0, Qt::UserRole).value<CommentDescription>();
     this->main->add_debug_output(RAddressString(comment.offset) + ": " + comment.name);
-    this->main->seek(comment.offset, comment.name);
+    this->main->seek(comment.offset, comment.name, true);
 }
 
 void CommentsWidget::on_toolButton_clicked()

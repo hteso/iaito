@@ -520,7 +520,7 @@ void MemoryWidget::refreshDisasm(const QString &offset)
     //ut64 addr = lcore->offset;
     //int length = lcore->num->value;
 
-    printf("refreshDisasm %s\n", offset.toLocal8Bit().constData());
+    //printf("refreshDisasm %s\n", offset.toLocal8Bit().constData());
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));

@@ -411,7 +411,6 @@ void QRCore::seek(ut64 offset)
 {
     CORE_LOCK();
     r_core_seek(this->core_, offset, true);
-    printf("offset: %llx\n", offset);
     emit offsetChanged(offset);
 }
 
@@ -932,6 +931,7 @@ QList<SymbolDescription> QRCore::getAllSymbols()
             symbol.name = QString(bs->name);
             symbol.bind = QString(bs->bind);
             symbol.type = QString(bs->type);
+            ret << symbol;
         }
 
         /* list entrypoints as symbols too */
@@ -969,6 +969,8 @@ QList<CommentDescription> QRCore::getAllComments(QString filterType)
         CommentDescription comment;
         comment.offset = commentObject["offset"].toVariant().toULongLong();
         comment.name = commentObject["name"].toString();
+
+        ret << comment;
     }
     return ret;
 }
@@ -994,6 +996,8 @@ QList<RelocDescription> QRCore::getAllRelocs()
                 reloc.name = br->import->name;
             else
                 reloc.name = QString("reloc_%1").arg(QString::number(br->vaddr, 16));
+
+            ret << reloc;
         }
     }
 
@@ -1014,6 +1018,7 @@ QList<StringDescription> QRCore::getAllStrings()
             StringDescription str;
             str.vaddr = bs->vaddr;
             str.string = bs->string;
+            ret << str;
         }
     }
 

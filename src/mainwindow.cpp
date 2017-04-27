@@ -722,7 +722,7 @@ void MainWindow::on_actionRefresh_Panels_triggered()
 
 void MainWindow::seek(const QString &offset, const QString &name, bool raise_memory_dock)
 {
-    add_debug_output("TODO: remove MainWindow::seek");
+    // TODO: remove this method and use the one with RVA only!
 
     if(offset.length() < 2)
         return;
@@ -742,11 +742,11 @@ void MainWindow::seek(const RVA offset, const QString &name, bool raise_memory_d
     {
         this->memoryDock->setWindowTitle(name);
         //this->current_address = name;
-        setCursorAddress(offset);
     }
     this->hexdumpTopOffset = 0;
     this->hexdumpBottomOffset = 0;
     core->seek(offset);
+    setCursorAddress(offset);
 
     refreshMem(offset);
     this->memoryDock->disasTextEdit->setFocus();
