@@ -2,23 +2,39 @@
 #include "ui_relocswidget.h"
 
 #include "mainwindow.h"
+#include "helpers.h"
+
+#include <QTreeWidget>
+
 
 RelocsWidget::RelocsWidget(MainWindow *main, QWidget *parent) :
-    QDockWidget(parent),
-    ui(new Ui::RelocsWidget)
+    DockWidget(parent),
+    ui(new Ui::RelocsWidget),
+    main(main)
 {
     ui->setupUi(this);
 
     // Radare core found in:
     this->main = main;
 
-    this->relocsTreeWidget = ui->relocsTreeWidget;
-    relocsTreeWidget->setColumnHidden(0, true);
+    ui->relocsTreeWidget->hideColumn(0);
 }
 
 RelocsWidget::~RelocsWidget()
 {
     delete ui;
+}
+
+void RelocsWidget::setup()
+{
+    setScrollMode();
+
+    fillTreeWidget();
+}
+
+void RelocsWidget::refresh()
+{
+    setup();
 }
 
 void RelocsWidget::on_relocsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
@@ -27,18 +43,23 @@ void RelocsWidget::on_relocsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, 
 
     // Get offset and name of item double clicked
     RelocDescription reloc = item->data(0, Qt::UserRole).value<RelocDescription>();
-    main->seek(reloc.vaddr, reloc.name);
+    main->seek(reloc.vaddr, reloc.name, true);
 }
 
-void RelocsWidget::fillRelocs()
+void RelocsWidget::fillTreeWidget()
 {
-    relocsTreeWidget->clear();
+    ui->relocsTreeWidget->clear();
 
     for (auto i : main->core->getAllRelocs())
     {
-        QTreeWidgetItem *item = main->appendRow(relocsTreeWidget, RAddressString(i.vaddr), i.type, i.name);
+        QTreeWidgetItem *item = qhelpers::appendRow(ui->relocsTreeWidget, RAddressString(i.vaddr), i.type, i.name);
         item->setData(0, Qt::UserRole, QVariant::fromValue(i));
     }
 
-    main->adjustColumns(relocsTreeWidget);
+    qhelpers::adjustColumns(ui->relocsTreeWidget);
+}
+
+void RelocsWidget::setScrollMode()
+{
+    qhelpers::setVerticalScrollMode(ui->relocsTreeWidget);
 }

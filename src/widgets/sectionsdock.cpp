@@ -4,8 +4,12 @@
 #include "mainwindow.h"
 #include "widgets/sectionswidget.h"
 
+#include <QMenu>
+#include <QResizeEvent>
+
+
 SectionsDock::SectionsDock(MainWindow *main, QWidget *parent) :
-    QDockWidget(parent),
+    DockWidget(parent),
     ui(new Ui::SectionsDock)
 {
     ui->setupUi(this);
@@ -24,6 +28,16 @@ SectionsDock::SectionsDock(MainWindow *main, QWidget *parent) :
 SectionsDock::~SectionsDock()
 {
     delete ui;
+}
+
+void SectionsDock::setup()
+{
+    sectionsWidget->setup();
+}
+
+void SectionsDock::refresh()
+{
+    sectionsWidget->setup();
 }
 
 void SectionsDock::showSectionsContextMenu(const QPoint &pt)
@@ -52,7 +66,7 @@ void SectionsDock::showSectionsContextMenu(const QPoint &pt)
 
 void SectionsDock::resizeEvent(QResizeEvent *event)
 {
-    if(main->responsive && isVisible())
+    if (main->responsive && isVisible())
     {
         if (event->size().width() >= event->size().height())
         {

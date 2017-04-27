@@ -5,8 +5,10 @@
 #include <QTreeWidget>
 #include <QSortFilterProxyModel>
 #include "qrcore.h"
+#include "dashboard.h"
 
 class MainWindow;
+class QTreeWidgetItem;
 
 namespace Ui
 {
@@ -71,7 +73,7 @@ protected:
 
 
 
-class FunctionsWidget : public QDockWidget
+class FunctionsWidget : public DockWidget
 {
     Q_OBJECT
 
@@ -79,7 +81,9 @@ public:
     explicit FunctionsWidget(MainWindow *main, QWidget *parent = 0);
     ~FunctionsWidget();
 
-    void fillFunctions();
+    void setup() override;
+
+    void refresh() override;
 
 private slots:
     void on_functionsTreeView_itemDoubleClicked(const QModelIndex &index);
@@ -104,7 +108,6 @@ private:
     QTreeView *getCurrentTreeView();
 
     Ui::FunctionsWidget *ui;
-
     MainWindow      *main;
 
     QList<FunctionDescription> functions;
@@ -115,6 +118,9 @@ private:
 
     FunctionModel *nested_function_model;
     FunctionSortFilterProxyModel *nested_function_proxy_model;
+
+    void refreshTree();
+    void setScrollMode();
 };
 
 

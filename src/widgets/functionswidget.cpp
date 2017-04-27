@@ -1,13 +1,13 @@
 #include "functionswidget.h"
 #include "ui_functionswidget.h"
 
+#include "mainwindow.h"
+#include "helpers.h"
 #include "dialogs/commentsdialog.h"
 #include "dialogs/renamedialog.h"
 #include "dialogs/xrefsdialog.h"
-#include "mainwindow.h"
 
 #include <algorithm>
-
 #include <QMenu>
 #include <QDebug>
 #include <QString>
@@ -299,9 +299,11 @@ bool FunctionSortFilterProxyModel::lessThan(const QModelIndex &left, const QMode
 
 
 
+
 FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
-    QDockWidget(parent),
-    ui(new Ui::FunctionsWidget)
+    DockWidget(parent),
+    ui(new Ui::FunctionsWidget),
+    main(main)
 {
     ui->setupUi(this);
 
@@ -322,16 +324,13 @@ FunctionsWidget::FunctionsWidget(MainWindow *main, QWidget *parent) :
     connect(ui->filterLineEdit, SIGNAL(textChanged(const QString &)), nested_function_proxy_model, SLOT(setFilterWildcard(const QString &)));
     ui->nestedFunctionsTreeView->setModel(nested_function_proxy_model);
 
-    //ui->functionsTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-
-
-    //this->functionsTreeWidget->setFont(QFont("Monospace", 8));
     // Set Functions context menu
     connect(ui->functionsTreeView, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showFunctionsContextMenu(const QPoint &)));
     connect(ui->nestedFunctionsTreeView, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showFunctionsContextMenu(const QPoint &)));
+
 
     connect(ui->functionsTreeView, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(on_functionsTreeView_itemDoubleClicked(const QModelIndex &)));
     connect(ui->nestedFunctionsTreeView, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(on_functionsTreeView_itemDoubleClicked(const QModelIndex &)));
@@ -353,7 +352,18 @@ FunctionsWidget::~FunctionsWidget()
     delete ui;
 }
 
-void FunctionsWidget::fillFunctions()
+void FunctionsWidget::setup()
+{
+    setScrollMode();
+    refreshTree();
+}
+
+void FunctionsWidget::refresh()
+{
+    setup();
+}
+
+void FunctionsWidget::refreshTree()
 {
     function_model->beginReloadFunctions();
     nested_function_model->beginReloadFunctions();
@@ -399,7 +409,6 @@ void FunctionsWidget::showFunctionsContextMenu(const QPoint &pt)
     menu->addSeparator();
     menu->addAction(ui->action_References);
 
-    treeView->setContextMenuPolicy(Qt::CustomContextMenu);
     menu->exec(treeView->mapToGlobal(pt));
 
     delete menu;
@@ -427,7 +436,6 @@ void FunctionsWidget::on_actionDisasAdd_comment_triggered()
     }
     this->main->refreshComments();
 }
-
 
 void FunctionsWidget::on_actionFunctionsRename_triggered()
 {
@@ -554,7 +562,7 @@ void FunctionsWidget::on_actionVertical_triggered()
 
 void FunctionsWidget::resizeEvent(QResizeEvent *event)
 {
-    if(main->responsive && isVisible())
+    if (main->responsive && isVisible())
     {
         if (event->size().width() >= event->size().height())
         {
@@ -570,4 +578,7 @@ void FunctionsWidget::resizeEvent(QResizeEvent *event)
     QDockWidget::resizeEvent(event);
 }
 
-
+void FunctionsWidget::setScrollMode()
+{
+    qhelpers::setVerticalScrollMode(ui->functionsTreeView);
+}

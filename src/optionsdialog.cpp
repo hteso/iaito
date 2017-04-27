@@ -1,8 +1,12 @@
 #include "optionsdialog.h"
-#include "mainwindow.h"
 #include "ui_optionsdialog.h"
+#include "mainwindow.h"
 #include "newfiledialog.h"
 #include "helpers.h"
+
+// TODO: remove us
+#include "widgets/memorywidget.h"
+#include "widgets/notepad.h"
 
 #include <QSettings>
 
@@ -242,7 +246,7 @@ void OptionsDialog::anal_finished()
     {
         QByteArray ba;
         ba.append(notes);
-        this->w->notepadDock->notesTextEdit->setPlainText(QByteArray::fromBase64(ba));
+        this->w->notepadDock->setText(QByteArray::fromBase64(ba));
     }
 
     //Get binary beginning/end addresses
@@ -274,7 +278,7 @@ void OptionsDialog::on_cancelButton_clicked()
 QString OptionsDialog::analysisDescription(int level)
 {
     //TODO: replace this with meaningful descriptions
-    switch(level)
+    switch (level)
     {
     case 0:
         return tr("-");
@@ -322,7 +326,7 @@ void OptionsDialog::on_AdvOptButton_clicked()
 
 void OptionsDialog::on_analCheckBox_clicked(bool checked)
 {
-    if(!checked)
+    if (!checked)
         defaultAnalLevel = ui->analSlider->value();
     ui->analSlider->setValue(checked ? defaultAnalLevel : 0);
 }

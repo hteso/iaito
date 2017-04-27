@@ -240,7 +240,7 @@ QJsonDocument QRCore::cmdj(const QString &str)
     return doc;
 }
 
-bool QRCore::loadFile(QString path, uint64_t loadaddr = 0LL, uint64_t mapaddr = 0LL, bool rw = false, int va = 0, int bits = 0, int idx, bool loadbin)
+bool QRCore::loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw, int va, int bits, int idx, bool loadbin)
 {
     QNOTUSED(loadaddr);
     QNOTUSED(idx);
@@ -303,7 +303,7 @@ bool QRCore::loadFile(QString path, uint64_t loadaddr = 0LL, uint64_t mapaddr = 
         }
 
 #if HAVE_MULTIPLE_RBIN_FILES_INSIDE_SELECT_WHICH_ONE
-        if (!r_core_file_open(core, path.toUtf8(), R_IO_READ | rw ? R_IO_WRITE : 0, mapaddr))
+        if (!r_core_file_open(core, path.toUtf8(), R_IO_READ | (rw ? R_IO_WRITE : 0, mapaddr)))
         {
             eprintf("Cannot open file\n");
         }
@@ -393,14 +393,7 @@ QMap<QString, QList<QList<QString>>> QRCore::getNestedComments()
             tmp << fields[1].split("\"")[1].trimmed();
             tmp << fields[0].trimmed();
             QString fcn_name = this->cmdFunctionAt(fields[0].trimmed());
-            if (ret.contains(fcn_name))
-            {
-                ret[fcn_name].append(tmp);
-            }
-            else
-            {
-                ret[fcn_name].append(tmp);
-            }
+            ret[fcn_name].append(tmp);
         }
     }
     return ret;
@@ -446,6 +439,92 @@ bool QRCore::tryFile(QString path, bool rw)
     return true;
 }
 
+QList<QString> QRCore::getList(const QString &type, const QString &subtype)
+{
+    CORE_LOCK();
+    RListIter *it;
+    QList<QString> ret = QList<QString>();
+
+    if (type == "bin")
+    {
+        if (subtype == "sections")
+        {
+            QString text = cmd("S*~^S");
+            for (QString i : text.split("\n"))
+            {
+                ret << i.mid(2).replace(" ", ",");
+            }
+        }
+        else if (subtype == "types")
+        {
+            ret << "raw";
+            auto ft = sdb_const_get(DB, "try.filetype", 0);
+            if (ft && *ft)
+                ret << ft;
+        }
+        else if (subtype == "entrypoints")
+        {
+            if (math("entry0") != 0)
+                ret << "entry0";
+        }
+    }
+    else if (type == "asm")
+    {
+        if (subtype == "plugins")
+        {
+            RAsmPlugin *ap;
+            QRListForeach(core_->assembler->plugins, it, RAsmPlugin, ap)
+            {
+                ret << ap->name;
+            }
+        }
+        else if (subtype == "cpus")
+        {
+            QString funcs = cmd("e asm.cpu=?");
+            QStringList lines = funcs.split("\n");
+            for (auto cpu : lines)
+            {
+                ret << cpu;
+            }
+        }
+    }
+    else if (type == "anal")
+    {
+        if (subtype == "plugins")
+        {
+            RAnalPlugin *ap;
+            QRListForeach(core_->anal->plugins, it, RAnalPlugin, ap)
+            {
+                ret << ap->name;
+            }
+        }
+    }
+    else if (type == "flagspaces")
+    {
+        QStringList lines = cmd("fs*").split("\n");
+        for (auto i : lines)
+        {
+            QStringList a = i.replace("*", "").split(" ");
+            if (a.length() > 1)
+                ret << a[1];
+        }
+    }
+    else if (type == "flags")
+    {
+        if (subtype != NULL && subtype != "")
+            cmd("fs " + subtype);
+        else cmd("fs *");
+        QString flags = cmd("f*");
+        QStringList lines = flags.split("\n");
+        for (auto i : lines)
+        {
+            // TODO: is 0 in a string even possible?
+            if (i[0] != QChar(0) && i[1] == QChar('s')) continue; // skip 'fs ..'
+            ret << i.mid(2).replace(" ", ",");
+        }
+    }
+    return ret;
+}
 
 ut64 QRCore::math(const QString &expr)
 {
@@ -535,7 +614,7 @@ void QRCore::setOptions(QString key)
     // anal plugin
 }
 
-void QRCore::setCPU(QString arch, QString cpu, int bits, bool temporary = false)
+void QRCore::setCPU(QString arch, QString cpu, int bits, bool temporary)
 {
     config("asm.arch", arch);
     config("asm.cpu", cpu);
@@ -639,8 +718,7 @@ QString QRCore::getOffsetInfo(QString addr)
 
 QString QRCore::getOffsetJump(QString addr)
 {
-    QString ret = "";
-    ret = cmd("ao @" + addr + "~jump[1]");
+    QString ret = cmd("ao @" + addr + "~jump[1]");
     return ret;
 }
 
@@ -651,10 +729,7 @@ QString QRCore::getDecompiledCode(QString addr)
 
 QString QRCore::getFileInfo()
 {
-
-    QString info;
-    info = cmd("ij");
-
+    QString info = cmd("ij");
     return info;
 }
 
@@ -683,7 +758,6 @@ QStringList QRCore::getStats()
 
 QString QRCore::getSimpleGraph(QString function)
 {
-
     // New styles
     QString graph = "graph [bgcolor=invis, splines=polyline];";
     QString node = "node [style=\"filled\" fillcolor=\"#4183D7\" shape=box fontname=\"Courier\" fontsize=\"8\" color=\"#4183D7\" fontcolor=\"white\"];";
@@ -776,91 +850,6 @@ void QRCore::setSettings()
 
 
 
-QList<QString> QRCore::getList(const QString &type, const QString &subtype)
-{
-    CORE_LOCK();
-    RListIter *it;
-    QList<QString> ret = QList<QString>();
-
-    if (type == "bin")
-    {
-        if (subtype == "sections")
-        {
-            QString text = cmd("S*~^S");
-            for (QString i : text.split("\n"))
-            {
-                ret << i.mid(2).replace(" ", ",");
-            }
-        }
-        else if (subtype == "types")
-        {
-            ret << "raw";
-            auto ft = sdb_const_get(DB, "try.filetype", 0);
-            if (ft && *ft)
-                ret << ft;
-        }
-        else if (subtype == "entrypoints")
-        {
-            if (math("entry0") != 0)
-                ret << "entry0";
-        }
-    }
-    else if (type == "asm")
-    {
-        if (subtype == "plugins")
-        {
-            RAsmPlugin *ap;
-            QRListForeach(core_->assembler->plugins, it, RAsmPlugin, ap)
-                {
-                    ret << ap->name;
-                }
-        }
-        else if (subtype == "cpus")
-        {
-            QString funcs = cmd("e asm.cpu=?");
-            QStringList lines = funcs.split("\n");
-            for (auto cpu : lines)
-            {
-                ret << cpu;
-            }
-        }
-    }
-    else if (type == "anal")
-    {
-        if (subtype == "plugins")
-        {
-            RAnalPlugin *ap;
-            QRListForeach(core_->anal->plugins, it, RAnalPlugin, ap)
-                {
-                    ret << ap->name;
-                }
-        }
-    }
-    else if (type == "flagspaces")
-    {
-        QStringList lines = cmd("fs*").split("\n");
-        for (auto i : lines)
-        {
-            QStringList a = i.replace("*", "").split(" ");
-            if (a.length() > 1)
-                ret << a[1];
-        }
-    }
-    else if (type == "flags")
-    {
-        if (subtype != NULL && subtype != "")
-            cmd("fs " + subtype);
-        else cmd("fs *");
-        QString flags = cmd("f*");
-        QStringList lines = flags.split("\n");
-        for (auto i : lines)
-        {
-            if (i[0] != 0 && i[1] == 's') continue; // skip 'fs ..'
-            ret << i.mid(2).replace(" ", ",");
-        }
-    }
-    return ret;
-}
 
 
 QList<RVA> QRCore::getSeekHistory()

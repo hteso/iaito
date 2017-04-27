@@ -2,14 +2,19 @@
 #include "ui_symbolswidget.h"
 
 #include "mainwindow.h"
+#include "helpers.h"
+
+#include <QTreeWidget>
+
 
 SymbolsWidget::SymbolsWidget(MainWindow *main, QWidget *parent) :
-    QDockWidget(parent),
-    ui(new Ui::SymbolsWidget)
+    DockWidget(parent),
+    ui(new Ui::SymbolsWidget),
+    main(main)
 {
     ui->setupUi(this);
-    this->main = main;
-    this->symbolsTreeWidget = ui->symbolsTreeWidget;
+
+    ui->symbolsTreeWidget->hideColumn(0);
 }
 
 SymbolsWidget::~SymbolsWidget()
@@ -17,19 +22,16 @@ SymbolsWidget::~SymbolsWidget()
     delete ui;
 }
 
-void SymbolsWidget::fillSymbols()
+void SymbolsWidget::setup()
 {
-    this->symbolsTreeWidget->clear();
-    for (auto symbol : this->main->core->getAllSymbols())
-    {
-        QTreeWidgetItem *item = this->main->appendRow(this->symbolsTreeWidget,
-                                                      RAddressString(symbol.vaddr),
-                                                      QString("%1 %2").arg(symbol.bind, symbol.type).trimmed(),
-                                                      symbol.name);
+    setScrollMode();
 
-        item->setData(0, Qt::UserRole, QVariant::fromValue(symbol));
-    }
-    this->main->adjustColumns(this->symbolsTreeWidget);
+    fillSymbols();
+}
+
+void SymbolsWidget::refresh()
+{
+    setup();
 }
 
 void SymbolsWidget::on_symbolsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item, int column)
@@ -39,4 +41,24 @@ void SymbolsWidget::on_symbolsTreeWidget_itemDoubleClicked(QTreeWidgetItem *item
     // Get offset and name of item double clicked
     SymbolDescription symbol = item->data(0, Qt::UserRole).value<SymbolDescription>();
     this->main->seek(symbol.vaddr, symbol.name);
+}
+
+void SymbolsWidget::fillSymbols()
+{
+    ui->symbolsTreeWidget->clear();
+    for (auto symbol : this->main->core->getAllSymbols())
+    {
+        QTreeWidgetItem *item = qhelpers::appendRow(ui->symbolsTreeWidget,
+                                                      RAddressString(symbol.vaddr),
+                                                      QString("%1 %2").arg(symbol.bind, symbol.type).trimmed(),
+                                                      symbol.name);
+
+        item->setData(0, Qt::UserRole, QVariant::fromValue(symbol));
+    }
+    qhelpers::adjustColumns(ui->symbolsTreeWidget);
+}
+
+void SymbolsWidget::setScrollMode()
+{
+    qhelpers::setVerticalScrollMode(ui->symbolsTreeWidget);
 }

@@ -49,17 +49,20 @@ class PieView : public QAbstractItemView
     Q_OBJECT
 
 public:
-    PieView(QWidget *parent = 0);
+    explicit PieView(QWidget *parent = 0);
 
     QRect visualRect(const QModelIndex &index) const;
     void scrollTo(const QModelIndex &index, ScrollHint hint = EnsureVisible);
     QModelIndex indexAt(const QPoint &point) const;
 
+public slots:
+    void reset() override;
+
 protected slots:
     void dataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight,
-                     const QVector<int> &roles = QVector<int>());
-    void rowsInserted(const QModelIndex &parent, int start, int end);
-    void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end);
+                     const QVector<int> &roles = QVector<int>()) override;
+    void rowsInserted(const QModelIndex &parent, int start, int end) override;
+    void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
 
 protected:
     bool edit(const QModelIndex &index, EditTrigger trigger, QEvent *event);
@@ -85,7 +88,7 @@ protected:
     QRegion visualRegionForSelection(const QItemSelection &selection) const;
 
 private:
-    QRect itemRect(const QModelIndex &item) const;
+    QRect itemRect(const QModelIndex &index) const;
     QRegion itemRegion(const QModelIndex &index) const;
     int rows(const QModelIndex &index = QModelIndex()) const;
     void updateGeometries();

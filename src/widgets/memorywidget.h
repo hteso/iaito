@@ -16,6 +16,8 @@
 #include <QPlainTextEdit>
 #include <QMouseEvent>
 
+#include "dashboard.h"
+
 class MainWindow;
 
 namespace Ui
@@ -23,13 +25,17 @@ namespace Ui
     class MemoryWidget;
 }
 
-class MemoryWidget : public QDockWidget
+class MemoryWidget : public DockWidget
 {
     Q_OBJECT
 
 public:
     explicit MemoryWidget(MainWindow *main);
     ~MemoryWidget();
+
+    void setup() override;
+
+    void refresh() override;
 
     MainWindow       *main;
     QPlainTextEdit   *disasTextEdit;
@@ -50,6 +56,9 @@ public:
     Highlighter        *preview_highlighter;
     Highlighter        *deco_highlighter;
 
+signals:
+    void fontChanged(QFont font);
+
 public slots:
     void fillPlugins(QStringList plugins);
 
@@ -59,15 +68,15 @@ public slots:
 
     void refreshDisasm(const QString &offset = QString());
 
-    void refreshHexdump(QString where = 0);
+    void refreshHexdump(const QString &where = QString());
 
-    void fill_refs(QList<QStringList> list, QList<QStringList> xrefs, QList<int> graph_data);
+    void fill_refs(QList<QStringList> refs, QList<QStringList> xrefs, QList<int> graph_data);
 
     void fillOffsetInfo(QString off);
 
     void get_refs_data(const QString &offset);
 
-    void seek_to(QString offset);
+    void seek_to(const QString &offset);
 
     void create_graph(QString off);
 
@@ -103,6 +112,8 @@ private:
     RVA last_hexdump_fcn;
 
     void setFcnName(RVA addr);
+
+    void setScrollMode();
 
 private slots:
     void on_cursorAddressChanged(RVA offset);
@@ -146,7 +157,7 @@ private slots:
     void disasmScrolled();
     void resizeHexdump();
     void hexScrolled();
-    QList<QString> get_hexdump(QString off);
+    QList<QString> get_hexdump(const QString &offset);
 
     //void showDisas();
     void showHexdump();

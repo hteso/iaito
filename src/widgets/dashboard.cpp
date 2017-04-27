@@ -8,9 +8,12 @@
 #include <QStringList>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QFile>
+#include <QLayoutItem>
+
 
 Dashboard::Dashboard(MainWindow *main, QWidget *parent) :
-    QDockWidget(parent),
+    DockWidget(parent),
     ui(new Ui::Dashboard)
 {
     ui->setupUi(this);
@@ -26,9 +29,18 @@ Dashboard::~Dashboard()
     delete ui;
 }
 
+void Dashboard::setup()
+{
+    updateContents();
+}
+
+void Dashboard::refresh()
+{
+    updateContents();
+}
+
 void Dashboard::updateContents()
 {
-
     // Parse and add JSON file info
     QString info = this->main->core->getFileInfo();
 
@@ -138,11 +150,28 @@ void Dashboard::updateContents()
 
     QString libs = this->main->core->cmd("il");
     QStringList lines = libs.split("\n", QString::SkipEmptyParts);
-    if (! lines.isEmpty())
+    if (!lines.isEmpty())
     {
         lines.removeFirst();
         lines.removeLast();
     }
+
+    // dunno: why not label->setText(lines.join("\n")?
+    while (ui->verticalLayout_2->count() > 0)
+    {
+        QLayoutItem *item = ui->verticalLayout_2->takeAt(0);
+        if (item != nullptr)
+        {
+            QWidget *w = item->widget();
+            if (w != nullptr)
+            {
+                w->deleteLater();
+            }
+
+            delete item;
+        }
+    }
+
     foreach (QString lib, lines)
     {
         QLabel *label = new QLabel(this);
@@ -150,6 +179,10 @@ void Dashboard::updateContents()
         label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         ui->verticalLayout_2->addWidget(label);
     }
+
+
+
+
     QSpacerItem *spacer = new QSpacerItem(1, 1, QSizePolicy::Fixed, QSizePolicy::Expanding);
     ui->verticalLayout_2->addSpacerItem(spacer);
 
