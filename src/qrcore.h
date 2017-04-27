@@ -189,8 +189,6 @@ public:
     Sdb *db;
 
 signals:
-    void offsetChanged(RVA offset);
-
     void functionRenamed(QString prev_name, QString new_name);
 
 public slots:

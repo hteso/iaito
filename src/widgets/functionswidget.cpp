@@ -252,13 +252,15 @@ FunctionSortFilterProxyModel::FunctionSortFilterProxyModel(FunctionModel *source
         : QSortFilterProxyModel(parent)
 {
     setSourceModel(source_model);
+    setFilterCaseSensitivity(Qt::CaseInsensitive);
+    setSortCaseSensitivity(Qt::CaseInsensitive);
 }
 
 bool FunctionSortFilterProxyModel::filterAcceptsRow(int row, const QModelIndex &parent) const
 {
     QModelIndex index = sourceModel()->index(row, 0, parent);
     FunctionDescription function = index.data(Qt::UserRole).value<FunctionDescription>();
-    return function.name.contains(filterRegExp().pattern());
+    return function.name.contains(filterRegExp());
 }
 
 
