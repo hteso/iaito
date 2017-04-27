@@ -206,6 +206,7 @@ void FunctionModel::endReloadFunctions()
 void FunctionModel::cursorAddressChanged(RVA)
 {
     updateCurrentIndex();
+    emit dataChanged(index(0, 0), index(rowCount()-1, columnCount()-1));
 }
 
 void FunctionModel::updateCurrentIndex()
@@ -238,7 +239,7 @@ void FunctionModel::functionRenamed(QString prev_name, QString new_name)
         if(function.name == prev_name)
         {
             function.name = new_name;
-            emit dataChanged(index(i, 0), index(i, columnCount()));
+            emit dataChanged(index(i, 0), index(i, columnCount()-1));
             return;
         }
     }
