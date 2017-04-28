@@ -55,7 +55,7 @@ int FunctionModel::rowCount(const QModelIndex &parent) const
     if(nested)
     {
         if(parent.internalId() == 0)
-            return 2;
+            return 3; // sub-nodes for nested functions
         return 0;
     }
     else
@@ -67,7 +67,7 @@ int FunctionModel::columnCount(const QModelIndex &parent) const
     if(nested)
         return 1;
     else
-        return 3;
+        return 4;
 }
 
 
@@ -107,6 +107,8 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
                             return tr("Offset: %1").arg(RAddressString(function.offset));
                         case 1:
                             return tr("Size: %1").arg(RSizeString(function.size));
+                        case 2:
+                            return tr("Import: %1").arg(import_addresses->contains(function.offset) ? tr("true") : tr("false"));
                         default:
                             return QVariant();
                     }
@@ -122,7 +124,7 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
                         return RAddressString(function.offset);
                     case 1:
                         return RSizeString(function.size);
-                    case 2:
+                    case 3:
                         return function.name;
                     default:
                         return QVariant();
@@ -131,7 +133,7 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
 
         case Qt::DecorationRole:
             if(import_addresses->contains(function.offset) &&
-                    (nested ? !index.parent().isValid() :index.column() == 2))
+                    (nested ? false :index.column() == 2))
                 return QIcon(":/img/icons/import_light.svg");
             return QVariant();
 
@@ -157,8 +159,11 @@ QVariant FunctionModel::data(const QModelIndex &index, int role) const
             return QVariant();
         }
 
-        case Qt::UserRole:
+        case FunctionDescriptionRole:
             return QVariant::fromValue(function);
+
+        case IsImportRole:
+            return import_addresses->contains(function.offset);
 
         default:
             return QVariant();
@@ -182,6 +187,8 @@ QVariant FunctionModel::headerData(int section, Qt::Orientation orientation, int
                 case 1:
                     return tr("Size");
                 case 2:
+                    return tr("Imp.");
+                case 3:
                     return tr("Name");
                 default:
                     return QVariant();
@@ -240,7 +247,6 @@ void FunctionModel::functionRenamed(QString prev_name, QString new_name)
         {
             function.name = new_name;
             emit dataChanged(index(i, 0), index(i, columnCount()-1));
-            return;
         }
     }
 }
@@ -259,7 +265,7 @@ FunctionSortFilterProxyModel::FunctionSortFilterProxyModel(FunctionModel *source
 bool FunctionSortFilterProxyModel::filterAcceptsRow(int row, const QModelIndex &parent) const
 {
     QModelIndex index = sourceModel()->index(row, 0, parent);
-    FunctionDescription function = index.data(Qt::UserRole).value<FunctionDescription>();
+    FunctionDescription function = index.data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
     return function.name.contains(filterRegExp());
 }
 
@@ -270,10 +276,11 @@ bool FunctionSortFilterProxyModel::lessThan(const QModelIndex &left, const QMode
         return false;
 
     if(left.parent().isValid() || right.parent().isValid())
-        return left.row() < right.row();
+        return false;
 
-    FunctionDescription left_function = left.data(Qt::UserRole).value<FunctionDescription>();
-    FunctionDescription right_function = right.data(Qt::UserRole).value<FunctionDescription>();
+    FunctionDescription left_function = left.data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
+    FunctionDescription right_function = right.data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
+
 
     if(static_cast<FunctionModel *>(sourceModel())->isNested())
     {
@@ -283,17 +290,27 @@ bool FunctionSortFilterProxyModel::lessThan(const QModelIndex &left, const QMode
     {
         switch (left.column())
         {
+            case 0:
+                return left_function.offset < right_function.offset;
             case 1:
                 if (left_function.size != right_function.size)
                     return left_function.size < right_function.size;
-                // fallthrough
-            case 0:
-                return left_function.offset < right_function.offset;
+                break;
             case 2:
+            {
+                bool left_is_import = left.data(FunctionModel::IsImportRole).toBool();
+                bool right_is_import = right.data(FunctionModel::IsImportRole).toBool();
+                if(!left_is_import && right_is_import)
+                    return true;
+                break;
+            }
+            case 3:
                 return left_function.name < right_function.name;
             default:
                 return false;
         }
+
+        return left_function.offset < right_function.offset;
     }
 }
 
@@ -382,6 +399,7 @@ void FunctionsWidget::refreshTree()
     // resize offset and size columns
     ui->functionsTreeView->resizeColumnToContents(0);
     ui->functionsTreeView->resizeColumnToContents(1);
+    ui->functionsTreeView->resizeColumnToContents(2);
 }
 
 QTreeView *FunctionsWidget::getCurrentTreeView()
@@ -394,7 +412,7 @@ QTreeView *FunctionsWidget::getCurrentTreeView()
 
 void FunctionsWidget::on_functionsTreeView_itemDoubleClicked(const QModelIndex &index)
 {
-    FunctionDescription function = index.data(Qt::UserRole).value<FunctionDescription>();
+    FunctionDescription function = index.data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
     this->main->seek(function.offset, function.name, true);
 }
 
@@ -420,7 +438,7 @@ void FunctionsWidget::on_actionDisasAdd_comment_triggered()
 {
     // Get selected item in functions tree view
     QTreeView *treeView = getCurrentTreeView();
-    FunctionDescription function = treeView->selectionModel()->currentIndex().data(Qt::UserRole).value<FunctionDescription>();
+    FunctionDescription function = treeView->selectionModel()->currentIndex().data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
 
     // Create dialog
     CommentsDialog *c = new CommentsDialog(this);
@@ -443,7 +461,7 @@ void FunctionsWidget::on_actionFunctionsRename_triggered()
 {
     // Get selected item in functions tree view
     QTreeView *treeView = getCurrentTreeView();
-    FunctionDescription function = treeView->selectionModel()->currentIndex().data(Qt::UserRole).value<FunctionDescription>();
+    FunctionDescription function = treeView->selectionModel()->currentIndex().data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
 
     // Create dialog
     RenameDialog *r = new RenameDialog(this);
@@ -475,7 +493,7 @@ void FunctionsWidget::on_action_References_triggered()
 {
     // Get selected item in functions tree view
     QTreeView *treeView = getCurrentTreeView();
-    FunctionDescription function = treeView->selectionModel()->currentIndex().data(Qt::UserRole).value<FunctionDescription>();
+    FunctionDescription function = treeView->selectionModel()->currentIndex().data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
 
     //this->main->add_debug_output("Addr: " + address);
 
