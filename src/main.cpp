@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     QCommandLineOption analOption({"A", "anal"},
                                   QObject::tr("Automatically start analysis. Needs filename to be specified. May be a value between 0 and 4. Default is 3."),
                                   QObject::tr("level"),
-                                  QObject::tr("3"));
+                                  "3");
     cmdParser.addOption(analOption);
 
     cmdParser.process(a);

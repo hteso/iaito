@@ -159,7 +159,7 @@ public:
     void delComment(ut64 addr);
     QMap<QString, QList<QList<QString>>> getNestedComments();
     void setOptions(QString key);
-    bool loadFile(QString path, uint64_t loadaddr = 0LL, uint64_t mapaddr = 0LL, bool rw = false, int va = 0, int bits = 0, int idx = 0, bool loadbin = false);
+    bool loadFile(QString path, uint64_t loadaddr = 0LL, uint64_t mapaddr = 0LL, bool rw = false, int va = 0, int idx = 0, bool loadbin = false);
     bool tryFile(QString path, bool rw);
     void analyze(int level);
     void seek(QString addr);
@@ -199,6 +199,10 @@ public:
     QList<QString> getList(const QString &type, const QString &subtype = "");
 
     QList<RVA> getSeekHistory();
+
+    QStringList getAsmPluginNames();
+    QStringList getAnalPluginNames();
+
     QList<FunctionDescription> getAllFunctions();
     QList<ImportDescription> getAllImports();
     QList<SymbolDescription> getAllSymbols();

@@ -61,6 +61,8 @@ QRCore::QRCore(QObject *parent) :
     //config("http.root","/usr/local/share/radare2/last/www");
     //config("http.root","/usr/local/radare2/osx/share/radare2/1.1.0-git/www");
 
+    default_bits = 0;
+
     this->db = sdb_new(NULL, NULL, 0);  // WTF NOES
 }
 
@@ -240,7 +242,7 @@ QJsonDocument QRCore::cmdj(const QString &str)
     return doc;
 }
 
-bool QRCore::loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw, int va, int bits, int idx, bool loadbin)
+bool QRCore::loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw, int va, int idx, bool loadbin)
 {
     QNOTUSED(loadaddr);
     QNOTUSED(idx);
@@ -297,10 +299,6 @@ bool QRCore::loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw
                 eprintf("CANNOT GET RBIN INFO\n");
             }
         }
-        if (bits != 0)
-        {
-            r_config_set_i(core_->config, "asm.bits", bits);
-        }
 
 #if HAVE_MULTIPLE_RBIN_FILES_INSIDE_SELECT_WHICH_ONE
         if (!r_core_file_open(core, path.toUtf8(), R_IO_READ | (rw ? R_IO_WRITE : 0, mapaddr)))
@@ -320,6 +318,9 @@ bool QRCore::loadFile(QString path, uint64_t loadaddr, uint64_t mapaddr, bool rw
     {
         // Not loading RBin info coz va = false
     }
+
+    setDefaultCPU();
+
     r_core_hash_load(core_, path.toUtf8().constData());
     fflush(stdout);
     return true;
@@ -440,7 +441,6 @@ bool QRCore::tryFile(QString path, bool rw)
 QList<QString> QRCore::getList(const QString &type, const QString &subtype)
 {
     CORE_LOCK();
-    RListIter *it;
     QList<QString> ret = QList<QString>();
 
     if (type == "bin")
@@ -460,15 +460,7 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
     }
     else if (type == "asm")
     {
-        if (subtype == "plugins")
-        {
-            RAsmPlugin *ap;
-            QRListForeach(core_->assembler->plugins, it, RAsmPlugin, ap)
-            {
-                ret << ap->name;
-            }
-        }
-        else if (subtype == "cpus")
+        if (subtype == "cpus")
         {
             QString funcs = cmd("e asm.cpu=?");
             QStringList lines = funcs.split("\n");
@@ -478,17 +470,7 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
             }
         }
     }
-    else if (type == "anal")
-    {
-        if (subtype == "plugins")
-        {
-            RAnalPlugin *ap;
-            QRListForeach(core_->anal->plugins, it, RAnalPlugin, ap)
-            {
-                ret << ap->name;
-            }
-        }
-    }
+
     return ret;
 }
 
@@ -595,9 +577,12 @@ void QRCore::setCPU(QString arch, QString cpu, int bits, bool temporary)
 
 void QRCore::setDefaultCPU()
 {
-    config("asm.arch", default_arch);
-    config("asm.cpu", default_cpu);
-    config("asm.bits", QString::number(default_bits));
+    if (!default_arch.isEmpty())
+        config("asm.arch", default_arch);
+    if (!default_cpu.isEmpty())
+        config("asm.cpu", default_cpu);
+    if (default_bits)
+        config("asm.bits", QString::number(default_bits));
 }
 
 QString QRCore::assemble(const QString &code)
@@ -830,6 +815,39 @@ QList<RVA> QRCore::getSeekHistory()
     return ret;
 }
 
+
+
+QStringList QRCore::getAsmPluginNames()
+{
+    CORE_LOCK();
+    RListIter *it;
+    QStringList ret;
+
+    RAsmPlugin *ap;
+    QRListForeach(core_->assembler->plugins, it, RAsmPlugin, ap)
+    {
+        ret << ap->name;
+    }
+
+    return ret;
+}
+
+QStringList QRCore::getAnalPluginNames()
+{
+    CORE_LOCK();
+    RListIter *it;
+    QStringList ret;
+
+    RAnalPlugin *ap;
+    QRListForeach(core_->anal->plugins, it, RAnalPlugin, ap)
+    {
+        ret << ap->name;
+    }
+
+    return ret;
+}
+
+
 QList<FunctionDescription> QRCore::getAllFunctions()
 {
     CORE_LOCK();
@@ -1049,7 +1067,7 @@ QList<SectionDescription> QRCore::getAllSections()
         QJsonObject sectionObject = value.toObject();
 
         QString name = sectionObject["name"].toString();
-        if(name.isEmpty())
+        if (name.isEmpty())
             continue;
 
         SectionDescription section;
