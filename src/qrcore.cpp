@@ -497,30 +497,6 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
             }
         }
     }
-    else if (type == "flagspaces")
-    {
-        QStringList lines = cmd("fs*").split("\n");
-        for (auto i : lines)
-        {
-            QStringList a = i.replace("*", "").split(" ");
-            if (a.length() > 1)
-                ret << a[1];
-        }
-    }
-    else if (type == "flags")
-    {
-        if (subtype != NULL && subtype != "")
-            cmd("fs " + subtype);
-        else cmd("fs *");
-        QString flags = cmd("f*");
-        QStringList lines = flags.split("\n");
-        for (auto i : lines)
-        {
-            // TODO: is 0 in a string even possible?
-            if (i[0] != QChar(0) && i[1] == QChar('s')) continue; // skip 'fs ..'
-            ret << i.mid(2).replace(" ", ",");
-        }
-    }
     return ret;
 }
 
@@ -1021,5 +997,50 @@ QList<StringDescription> QRCore::getAllStrings()
         }
     }
 
+    return ret;
+}
+
+
+QList<FlagspaceDescription> QRCore::getAllFlagspaces()
+{
+    CORE_LOCK();
+    QList<FlagspaceDescription> ret;
+
+    QJsonArray flagspacesArray = cmdj("fsj").array();
+    for (QJsonValue value : flagspacesArray)
+    {
+        QJsonObject flagspaceObject = value.toObject();
+
+        FlagspaceDescription flagspace;
+        flagspace.name = flagspaceObject["name"].toString();
+
+        ret << flagspace;
+    }
+    return ret;
+}
+
+
+QList<FlagDescription> QRCore::getAllFlags(QString flagspace)
+{
+    CORE_LOCK();
+    QList<FlagDescription> ret;
+
+    if (!flagspace.isEmpty())
+        cmd("fs " + flagspace);
+    else
+        cmd("fs *");
+
+    QJsonArray flagsArray = cmdj("fj").array();
+    for (QJsonValue value : flagsArray)
+    {
+        QJsonObject flagObject = value.toObject();
+
+        FlagDescription flag;
+        flag.offset = flagObject["offset"].toVariant().toULongLong();
+        flag.size = flagObject["size"].toVariant().toULongLong();
+        flag.name = flagObject["name"].toString();
+
+        ret << flag;
+    }
     return ret;
 }

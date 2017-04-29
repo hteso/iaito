@@ -102,12 +102,26 @@ struct StringDescription
     QString string;
 };
 
+struct FlagspaceDescription
+{
+    QString name;
+};
+
+struct FlagDescription
+{
+    RVA offset;
+    RVA size;
+    QString name;
+};
+
 Q_DECLARE_METATYPE(FunctionDescription)
 Q_DECLARE_METATYPE(ImportDescription)
 Q_DECLARE_METATYPE(SymbolDescription)
 Q_DECLARE_METATYPE(CommentDescription)
 Q_DECLARE_METATYPE(RelocDescription)
 Q_DECLARE_METATYPE(StringDescription)
+Q_DECLARE_METATYPE(FlagspaceDescription)
+Q_DECLARE_METATYPE(FlagDescription)
 
 class QRCore : public QObject
 {
@@ -181,6 +195,8 @@ public:
     QList<CommentDescription> getAllComments(const QString &filterType);
     QList<RelocDescription> getAllRelocs();
     QList<StringDescription> getAllStrings();
+    QList<FlagspaceDescription> getAllFlagspaces();
+    QList<FlagDescription> getAllFlags(QString flagspace = NULL);
 
     RCoreLocked core() const;
 
