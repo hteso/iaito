@@ -445,15 +445,7 @@ QList<QString> QRCore::getList(const QString &type, const QString &subtype)
 
     if (type == "bin")
     {
-        if (subtype == "sections")
-        {
-            QString text = cmd("S*~^S");
-            for (QString i : text.split("\n"))
-            {
-                ret << i.mid(2).replace(" ", ",");
-            }
-        }
-        else if (subtype == "types")
+        if (subtype == "types")
         {
             ret << "raw";
             auto ft = sdb_const_get(DB, "try.filetype", 0);
@@ -1041,6 +1033,34 @@ QList<FlagDescription> QRCore::getAllFlags(QString flagspace)
         flag.name = flagObject["name"].toString();
 
         ret << flag;
+    }
+    return ret;
+}
+
+
+QList<SectionDescription> QRCore::getAllSections()
+{
+    CORE_LOCK();
+    QList<SectionDescription> ret;
+
+    QJsonArray sectionsArray = cmdj("Sj").array();
+    for (QJsonValue value : sectionsArray)
+    {
+        QJsonObject sectionObject = value.toObject();
+
+        QString name = sectionObject["name"].toString();
+        if(name.isEmpty())
+            continue;
+
+        SectionDescription section;
+        section.name = name;
+        section.vaddr = sectionObject["vaddr"].toVariant().toULongLong();
+        section.vsize = sectionObject["vsize"].toVariant().toULongLong();
+        section.paddr = sectionObject["paddr"].toVariant().toULongLong();
+        section.size = sectionObject["size"].toVariant().toULongLong();
+        section.flags = sectionObject["flags"].toString();
+
+        ret << section;
     }
     return ret;
 }

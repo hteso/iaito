@@ -114,6 +114,16 @@ struct FlagDescription
     QString name;
 };
 
+struct SectionDescription
+{
+    RVA vaddr;
+    RVA paddr;
+    RVA size;
+    RVA vsize;
+    QString name;
+    QString flags;
+};
+
 Q_DECLARE_METATYPE(FunctionDescription)
 Q_DECLARE_METATYPE(ImportDescription)
 Q_DECLARE_METATYPE(SymbolDescription)
@@ -197,6 +207,7 @@ public:
     QList<StringDescription> getAllStrings();
     QList<FlagspaceDescription> getAllFlagspaces();
     QList<FlagDescription> getAllFlags(QString flagspace = NULL);
+    QList<SectionDescription> getAllSections();
 
     RCoreLocked core() const;
 
