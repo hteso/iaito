@@ -84,12 +84,15 @@ int main(int argc, char *argv[])
     }
     else // filename specified as positional argument
     {
-        OptionsDialog *o = new OptionsDialog(args[0]);
+        MainWindow *main = new MainWindow();
+        main->openFile(args[0]);
+
+        /*OptionsDialog *o = new OptionsDialog(args[0]);
         o->setAttribute(Qt::WA_DeleteOnClose);
         o->show();
 
         if (analLevelSpecified)
-            o->setupAndStartAnalysis(analLevel);
+            o->setupAndStartAnalysis(analLevel);*/
     }
 
     return a.exec();

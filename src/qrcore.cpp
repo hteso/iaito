@@ -848,6 +848,20 @@ QStringList QRCore::getAnalPluginNames()
 }
 
 
+QStringList QRCore::getProjectNames()
+{
+    CORE_LOCK();
+    QStringList ret;
+
+    QJsonArray jsonArray = cmdj("Plj").array();
+    for(QJsonValue value : jsonArray)
+        ret.append(value.toString());
+
+    return ret;
+}
+
+
+
 QList<FunctionDescription> QRCore::getAllFunctions()
 {
     CORE_LOCK();

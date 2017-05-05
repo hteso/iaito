@@ -49,8 +49,16 @@ public:
 
     bool responsive;
 
-    explicit MainWindow(QWidget *parent = 0, QRCore *kore = nullptr);
+    explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
+    void openFile(const QString &fn);
+    void initUI();
+    void finalizeOpen();
+
+    void applySettings();
+
+    void saveProject();
 
     void start_web_server();
     void closeEvent(QCloseEvent *event);
@@ -204,9 +212,14 @@ private:
 
     RVA cursor_address;
 
+    void openProject(const QString &project_name);
+    void openNewFile(const QString &fn);
+
 public:
     RVA getCursorAddress() const        { return cursor_address; }
     void setCursorAddress(RVA addr);
+
+    QString getFilename() const         { return filename; }
 };
 
 #endif // MAINWINDOW_H

@@ -100,7 +100,8 @@ HEADERS  += \
     hexhighlighter.h \
     widgets/sectionsdock.h \
     widgets/dockwidget.h \
-    widgets/consolewidget.h
+    widgets/consolewidget.h \
+    settings.h
 
 FORMS    += \
     mainwindow.ui \
