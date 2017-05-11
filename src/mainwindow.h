@@ -52,7 +52,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    void openFile(const QString &fn);
+    void openFile(const QString &fn, int anal_level = -1);
     void initUI();
     void finalizeOpen();
 
@@ -213,7 +213,7 @@ private:
     RVA cursor_address;
 
     void openProject(const QString &project_name);
-    void openNewFile(const QString &fn);
+    void openNewFile(const QString &fn, int anal_level);
 
 public:
     RVA getCursorAddress() const        { return cursor_address; }

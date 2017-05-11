@@ -280,17 +280,17 @@ void MainWindow::initUI()
     connect(refresh_shortcut, SIGNAL(activated()), this, SLOT(refreshVisibleDockWidgets()));
 }
 
-void MainWindow::openFile(const QString &fn)
+void MainWindow::openFile(const QString &fn, int anal_level)
 {
     QString project_name = qhelpers::uniqueProjectName(fn);
 
     if(core->getProjectNames().contains(project_name))
         openProject(project_name);
     else
-        openNewFile(fn);
+        openNewFile(fn, anal_level);
 }
 
-void MainWindow::openNewFile(const QString &fn)
+void MainWindow::openNewFile(const QString &fn, int anal_level)
 {
     setFilename(fn);
 
@@ -298,8 +298,8 @@ void MainWindow::openNewFile(const QString &fn)
     o->setAttribute(Qt::WA_DeleteOnClose);
     o->show();
 
-    //if (analLevelSpecified)
-    //    o->setupAndStartAnalysis(analLevel);
+    if(anal_level >= 0)
+        o->setupAndStartAnalysis(anal_level);
 }
 
 void MainWindow::openProject(const QString &project_name)
