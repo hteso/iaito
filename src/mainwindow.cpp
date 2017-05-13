@@ -109,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent) :
     sidebar_action(nullptr),
     sectionsDock(nullptr),
     consoleWidget(nullptr),
-    webserverThread(core, this)
+    webserver(core)
 {
     doLock = false;
     this->cursor_address = core->getOffset();
@@ -274,8 +274,6 @@ void MainWindow::initUI()
     QShortcut *commands_shortcut = new QShortcut(QKeySequence(Qt::Key_Colon), this);
     connect(commands_shortcut, SIGNAL(activated()), this->omnibar, SLOT(showCommands()));
 
-    connect(&webserverThread, SIGNAL(finished()), this, SLOT(webserverThreadFinished()));
-
     QShortcut *refresh_shortcut = new QShortcut(QKeySequence(QKeySequence::Refresh), this);
     connect(refresh_shortcut, SIGNAL(activated()), this, SLOT(refreshVisibleDockWidgets()));
 }
@@ -438,24 +436,15 @@ void MainWindow::saveProject()
 void MainWindow::start_web_server()
 {
     // Start web server
-    webserverThread.startServer();
+    webserver.start();
 }
 
-void MainWindow::webserverThreadFinished()
-{
-    core->core()->http_up = webserverThread.isStarted() ? R_TRUE : R_FALSE;
-
-    // this is not true anymore, cause the webserver might have been stopped
-    //if (core->core->http_up == R_FALSE) {
-    //    eprintf("FAILED TO LAUNCH\n");
-    //}
-}
 
 void MainWindow::setWebServerState(bool start)
 {
     if (start)
     {
-        webserverThread.startServer();
+        webserver.start();
 
         // Open web interface on default browser
         // ballessay: well isn't this possible with =H&
@@ -464,7 +453,7 @@ void MainWindow::setWebServerState(bool start)
     }
     else
     {
-        webserverThread.stopServer();
+        webserver.stop();
     }
 }
 

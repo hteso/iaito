@@ -35,7 +35,6 @@ SOURCES += \
     qrcore.cpp \
     createnewdialog.cpp \
     hexascii_highlighter.cpp \
-    webserverthread.cpp \
     widgets/pieview.cpp \
     widgets/sectionswidget.cpp \
     widgets/codegraphic.cpp \
@@ -62,7 +61,8 @@ SOURCES += \
     dialogs/xrefsdialog.cpp \
     hexhighlighter.cpp \
     widgets/sectionsdock.cpp \
-    widgets/consolewidget.cpp
+    widgets/consolewidget.cpp \
+    radarewebserver.cpp
 
 HEADERS  += \
     mainwindow.h \
@@ -72,7 +72,6 @@ HEADERS  += \
     qrcore.h \
     createnewdialog.h \
     hexascii_highlighter.h \
-    webserverthread.h \
     widgets/pieview.h \
     widgets/sectionswidget.h \
     widgets/codegraphic.h \
@@ -101,6 +100,7 @@ HEADERS  += \
     widgets/sectionsdock.h \
     widgets/dockwidget.h \
     widgets/consolewidget.h \
+    radarewebserver.h \
     settings.h
 
 FORMS    += \

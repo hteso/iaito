@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "webserverthread.h"
+#include "radarewebserver.h"
 #include "qrcore.h" // only needed for ut64
 
 #include <QMainWindow>
@@ -172,8 +172,6 @@ private slots:
 
     void on_actionReset_settings_triggered();
 
-    void webserverThreadFinished();
-
     void on_actionQuit_triggered();
 
     void refreshVisibleDockWidgets();
@@ -208,7 +206,7 @@ private:
     QAction          *sidebar_action;
     SectionsDock     *sectionsDock;
     ConsoleWidget    *consoleWidget;
-    WebServerThread webserverThread;
+    RadareWebServer  webserver;
 
     RVA cursor_address;
 
