@@ -142,7 +142,7 @@ add_executable(iaito ${iaito_SRCS} ${iaitoDialogs_SRCS} ${iaitoWidgets_SRCS} ${i
 
 target_link_libraries(iaito
 	Qt5::Core
-        Qt5::Gui
+	Qt5::Gui
 	Qt5::Widgets
 	Qt5::WebEngine
 	Qt5::WebEngineWidgets
