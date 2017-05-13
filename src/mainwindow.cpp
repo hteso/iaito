@@ -331,13 +331,20 @@ void MainWindow::finalizeOpen()
     memoryDock->selectHexPreview();
 
     // Restore project notes
-    QString notes = this->core->cmd("Pn");
+    QString notes = this->core->cmd("Pnj");
     //qDebug() << "Notes:" << notes;
     if (notes != "")
     {
         QByteArray ba;
         ba.append(notes);
         notepadDock->setText(QByteArray::fromBase64(ba));
+    }
+    else
+    {
+        addOutput(" > Adding binary information to notepad");
+
+        notepadDock->setText("# Binary information\n\n" + core->cmd("i") +
+                "\n" + core->cmd("ie") + "\n" + core->cmd("iM") + "\n");
     }
 
     //Get binary beginning/end addresses

@@ -211,6 +211,7 @@ QRCore::~QRCore()
 QString QRCore::cmd(const QString &str)
 {
     CORE_LOCK();
+
     QByteArray cmd = str.toUtf8();
     //r_cons_flush();
     char *res = r_core_cmd_str(this->core_, cmd.constData());
