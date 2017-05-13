@@ -11,9 +11,6 @@ include(CheckCXXCompilerFlag)
 include(GenerateExportHeader)
 
 find_package(Qt5 ${QT_MIN_VERSION} NO_MODULE REQUIRED
-	Core
-	Widgets
-	Gui
 	WebEngine
 	WebEngineWidgets
 )
@@ -141,9 +138,6 @@ qt5_wrap_ui(iaito_UI
 add_executable(iaito ${iaito_SRCS} ${iaitoDialogs_SRCS} ${iaitoWidgets_SRCS} ${iaito_UI} ${QRC_FILES})
 
 target_link_libraries(iaito
-	Qt5::Core
-	Qt5::Gui
-	Qt5::Widgets
 	Qt5::WebEngine
 	Qt5::WebEngineWidgets
 	${RADARE2_LIBRARIES}
