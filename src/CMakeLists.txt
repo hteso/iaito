@@ -6,8 +6,8 @@ project(iaito VERSION 1.0.0)
 set(QT_MIN_VERSION "5.6.0")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(FeatureSummary)
 include(CheckCXXCompilerFlag)
+include(FeatureSummary)
 include(GenerateExportHeader)
 
 find_package(Qt5 ${QT_MIN_VERSION} NO_MODULE REQUIRED
@@ -51,6 +51,12 @@ if(WIN32)
 endif()
 #
 # Win32 setting ends
+
+# Apple
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	set(CMAKE_CXX_FLAGS "-mmacosx-version-min=10.7 -std=gnu0x -stdlib=libc++")
+endif()
+
 
 # Compiler settings
 #
@@ -144,3 +150,4 @@ target_link_libraries(iaito
 )
 
 install(TARGETS iaito RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+
