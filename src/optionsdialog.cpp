@@ -231,7 +231,7 @@ QString OptionsDialog::analysisDescription(int level)
     case 0:
         return tr("No analysis");
     case 1:
-        return tr("Auto-Analisis (aaa)");
+        return tr("Auto-Analysis (aaa)");
     case 2:
         return tr("Auto-Analysis Experimental (aaaa)");
     case 3:
