@@ -192,7 +192,7 @@ void XrefsDialog::fillRefsForFunction(RVA addr, QString name)
     // Get Refs and Xrefs
 
     // refs = calls q hace esa funcion
-    QList<XrefDescription> refs = main->core->getXRefs(addr, false, "C");
+    QList<XrefDescription> refs = main->core->getXRefs(addr, false);
 
     // xrefs = calls a esa funcion
     QList<XrefDescription> xrefs = main->core->getXRefs(addr, true);

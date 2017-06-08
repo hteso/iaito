@@ -1403,7 +1403,7 @@ void MemoryWidget::on_codeCombo_2_currentTextChanged(const QString &arg1)
 void MemoryWidget::get_refs_data(RVA addr)
 {
     // refs = calls q hace esa funcion
-    QList<XrefDescription> refs = main->core->getXRefs(addr, false, "C");
+    QList<XrefDescription> refs = main->core->getXRefs(addr, false);
 
     // xrefs = calls a esa funcion
     QList<XrefDescription> xrefs = main->core->getXRefs(addr, true);
