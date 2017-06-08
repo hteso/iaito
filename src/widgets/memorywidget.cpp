@@ -1403,10 +1403,10 @@ void MemoryWidget::on_codeCombo_2_currentTextChanged(const QString &arg1)
 void MemoryWidget::get_refs_data(RVA addr)
 {
     // refs = calls q hace esa funcion
-    QList<XrefDescription> refs = main->core->getXRefs(addr, false);
+    QList<XrefDescription> refs = main->core->getXRefs(addr, false, false);
 
     // xrefs = calls a esa funcion
-    QList<XrefDescription> xrefs = main->core->getXRefs(addr, true);
+    QList<XrefDescription> xrefs = main->core->getXRefs(addr, true, false);
 
     // Data for the disasm side graph
     QList<int> data;
@@ -1837,14 +1837,9 @@ void MemoryWidget::on_actionXRefs_triggered()
     QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
     if (ele.contains("0x"))
     {
-        // Get function for clicked offset
-        RAnalFunction *fcn = this->main->core->functionAt(ele.toLongLong(0, 16));
-        if (!fcn)
-        {
-            return;
-        }
+        RVA addr = ele.toLongLong(0, 16);
         XrefsDialog *x = new XrefsDialog(this->main, this);
-        x->fillRefsForFunction(fcn->addr, QString::fromUtf8(fcn->name));
+        x->fillRefsForAddress(addr, RAddressString(addr), false);
         x->exec();
     }
 }
