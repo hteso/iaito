@@ -42,7 +42,10 @@ endif()
 
 # Parse iaito.pro to get filenames
 include(QMakeProParse)
-parse_qmake_pro("${CMAKE_CURRENT_SOURCE_DIR}/iaito.pro" IAITO_PRO)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/iaito.pro"
+        "${CMAKE_CURRENT_BINARY_DIR}/iaito.pro"
+        COPYONLY) # trigger reconfigure if iaito.pro changes
+parse_qmake_pro("${CMAKE_CURRENT_BINARY_DIR}/iaito.pro" IAITO_PRO)
 set(SOURCE_FILES ${IAITO_PRO_SOURCES})
 set(HEADER_FILES ${IAITO_PRO_HEADERS})
 set(UI_FILES ${IAITO_PRO_FORMS})
