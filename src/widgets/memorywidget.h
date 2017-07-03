@@ -138,6 +138,7 @@ private slots:
     void showHexASCIIContextMenu(const QPoint &pt);
     void on_actionSend_to_Notepad_triggered();
     void on_actionDisasAdd_comment_triggered();
+    void on_actionAddFlag_triggered();
     void on_actionFunctionsRename_triggered();
     void on_actionDisas_ShowHideBytes_triggered();
 

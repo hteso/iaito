@@ -998,6 +998,7 @@ void MemoryWidget::showDisasContextMenu(const QPoint &pt)
         // Add menu actions
         menu->clear();
         menu->addAction(ui->actionDisasAdd_comment);
+        menu->addAction(ui->actionAddFlag);
         menu->addAction(ui->actionFunctionsRename);
         menu->addAction(ui->actionFunctionsUndefine);
         menu->addSeparator();
@@ -1259,6 +1260,37 @@ void MemoryWidget::on_actionSend_to_Notepad_triggered()
 }
 
 void MemoryWidget::on_actionDisasAdd_comment_triggered()
+{
+    // Get current offset
+    QTextCursor tc = this->disasTextEdit->textCursor();
+    tc.select(QTextCursor::LineUnderCursor);
+    QString lastline = tc.selectedText();
+    QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
+    if (ele.contains("0x"))
+    {
+        // Get function for clicked offset
+        RAnalFunction *fcn = this->main->core->functionAt(ele.toLongLong(0, 16));
+        CommentsDialog *c = new CommentsDialog(this);
+        if (c->exec())
+        {
+            // Get new function name
+            QString comment = c->getComment();
+            //this->main->add_debug_output("Comment: " + comment + " at: " + ele);
+            // Rename function in r2 core
+            this->main->core->setComment(ele, comment);
+            // Seek to new renamed function
+            if (fcn)
+            {
+                this->main->seek(fcn->name);
+            }
+            // TODO: Refresh functions tree widget
+        }
+    }
+    this->main->refreshComments();
+}
+
+
+void MemoryWidget::on_actionAddFlag_triggered()
 {
     // Get current offset
     QTextCursor tc = this->disasTextEdit->textCursor();
