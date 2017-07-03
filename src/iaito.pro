@@ -29,7 +29,7 @@ macx {
 
 INCLUDEPATH *= .
 
-exists(/usr/local/include/libr) {
+unix:exists(/usr/local/include/libr) {
     INCLUDEPATH += /usr/local/include/libr
 }
 
