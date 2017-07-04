@@ -11,6 +11,10 @@ FlagDialog::FlagDialog(IaitoRCore *core, RVA offset, QWidget *parent) :
 
     this->core = core;
     this->offset = offset;
+
+    auto size_validator = new QIntValidator(ui->sizeEdit);
+    size_validator->setBottom(1);
+    ui->sizeEdit->setValidator(size_validator);
 }
 
 FlagDialog::~FlagDialog()
@@ -21,7 +25,8 @@ FlagDialog::~FlagDialog()
 void FlagDialog::on_buttonBox_accepted()
 {
     QString name = ui->nameEdit->text();
-    core->cmd(QString("f %1 @ %2").arg(name).arg(offset));
+    RVA size = ui->sizeEdit->text().toULongLong();
+    core->addFlag(offset, name, size);
 }
 
 void FlagDialog::on_buttonBox_rejected()

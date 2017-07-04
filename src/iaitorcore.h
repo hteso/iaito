@@ -163,6 +163,7 @@ public:
     ~IaitoRCore();
 
     RVA getOffset() const                           { return core_->offset; }
+    static QString sanitizeStringForCommand(QString s);
     int getCycloComplex(ut64 addr);
     int getFcnSize(ut64 addr);
     int fcnCyclomaticComplexity(ut64 addr);
@@ -236,6 +237,8 @@ public:
 
     QList<XrefDescription> getXRefs(RVA addr, bool to, bool whole_function, const QString &filterType = QString::null);
 
+    void addFlag(RVA offset, QString name, RVA size);
+
     RCoreLocked core() const;
 
     /* fields */
@@ -244,6 +247,7 @@ public:
 
 signals:
     void functionRenamed(QString prev_name, QString new_name);
+    void flagsChanged();
 
 public slots:
 

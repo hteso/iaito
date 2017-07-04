@@ -190,6 +190,7 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     connect(ui->graphWebView->page(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
 
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(on_cursorAddressChanged(RVA)));
+    connect(main->core, SIGNAL(flagsChanged()), this, SLOT(updateViews()));
 
     fillPlugins();
 }
