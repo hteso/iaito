@@ -122,6 +122,7 @@ private slots:
     void highlightHexCurrentLine();
     void highlightPreviewCurrentLine();
     void highlightDecoCurrentLine();
+    RVA readCurrentDisassemblyOffset();
     void setFonts(QFont font);
 
     void highlightHexWords(const QString &str);

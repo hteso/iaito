@@ -6,6 +6,7 @@
 #include "dialogs/xrefsdialog.h"
 #include "dialogs/renamedialog.h"
 #include "dialogs/commentsdialog.h"
+#include "dialogs/flagdialog.h"
 
 #include <QTemporaryFile>
 #include <QFontDialog>
@@ -386,6 +387,23 @@ void MemoryWidget::highlightDecoCurrentLine()
     ui->decoTextEdit->setExtraSelections(extraSelections);
 }
 
+RVA MemoryWidget::readCurrentDisassemblyOffset()
+{
+    // TODO: do this in a different way without parsing the disassembly text
+    QTextCursor tc = this->disasTextEdit->textCursor();
+    tc.select(QTextCursor::LineUnderCursor);
+    QString lastline = tc.selectedText();
+    QStringList parts = lastline.split(" ", QString::SkipEmptyParts);
+
+    if(parts.isEmpty())
+        return 0;
+
+    QString ele = parts[0];
+    if (!ele.contains("0x"))
+        return 0;
+
+    return ele.toULongLong(0, 16);
+}
 
 MemoryWidget::~MemoryWidget()
 {
@@ -1261,62 +1279,43 @@ void MemoryWidget::on_actionSend_to_Notepad_triggered()
 
 void MemoryWidget::on_actionDisasAdd_comment_triggered()
 {
-    // Get current offset
-    QTextCursor tc = this->disasTextEdit->textCursor();
-    tc.select(QTextCursor::LineUnderCursor);
-    QString lastline = tc.selectedText();
-    QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-    if (ele.contains("0x"))
+    RVA offset = readCurrentDisassemblyOffset();
+
+    // Get function for clicked offset
+    RAnalFunction *fcn = this->main->core->functionAt(offset);
+    CommentsDialog *c = new CommentsDialog(this);
+    if (c->exec())
     {
-        // Get function for clicked offset
-        RAnalFunction *fcn = this->main->core->functionAt(ele.toLongLong(0, 16));
-        CommentsDialog *c = new CommentsDialog(this);
-        if (c->exec())
+        // Get new function name
+        QString comment = c->getComment();
+        //this->main->add_debug_output("Comment: " + comment + " at: " + ele);
+        // Rename function in r2 core
+        this->main->core->setComment(offset, comment);
+        // Seek to new renamed function
+        if (fcn)
         {
-            // Get new function name
-            QString comment = c->getComment();
-            //this->main->add_debug_output("Comment: " + comment + " at: " + ele);
-            // Rename function in r2 core
-            this->main->core->setComment(ele, comment);
-            // Seek to new renamed function
-            if (fcn)
-            {
-                this->main->seek(fcn->name);
-            }
-            // TODO: Refresh functions tree widget
+            this->main->seek(fcn->name);
         }
+        // TODO: Refresh functions tree widget
     }
+
     this->main->refreshComments();
 }
 
 
 void MemoryWidget::on_actionAddFlag_triggered()
 {
-    // Get current offset
-    QTextCursor tc = this->disasTextEdit->textCursor();
-    tc.select(QTextCursor::LineUnderCursor);
-    QString lastline = tc.selectedText();
-    QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-    if (ele.contains("0x"))
+    RVA offset = readCurrentDisassemblyOffset();
+
+    FlagDialog *dialog = new FlagDialog(main->core, offset, this);
+    if (dialog->exec())
     {
-        // Get function for clicked offset
-        RAnalFunction *fcn = this->main->core->functionAt(ele.toLongLong(0, 16));
-        CommentsDialog *c = new CommentsDialog(this);
-        if (c->exec())
-        {
-            // Get new function name
-            QString comment = c->getComment();
-            //this->main->add_debug_output("Comment: " + comment + " at: " + ele);
-            // Rename function in r2 core
-            this->main->core->setComment(ele, comment);
-            // Seek to new renamed function
-            if (fcn)
-            {
-                this->main->seek(fcn->name);
-            }
-            // TODO: Refresh functions tree widget
-        }
+        //QString comment = dialog->getFlagName();
+        // Rename function in r2 core
+
+        //this->main->core->setComment(offset, comment);
     }
+
     this->main->refreshComments();
 }
 
