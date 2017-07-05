@@ -46,6 +46,8 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     this->last_graph_fcn = 0; //"";
     this->last_hexdump_fcn = 0; //"";
 
+    disasm_top_offset = 0;
+
     // Increase asm text edit margin
     QTextDocument *asm_docu = this->disasTextEdit->document();
     asm_docu->setDocumentMargin(10);
@@ -189,6 +191,7 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
 
     connect(ui->graphWebView->page(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
 
+    connect(main, SIGNAL(globalSeekTo(RVA)), this, SLOT(on_globalSeekTo(RVA)));
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(on_cursorAddressChanged(RVA)));
     connect(main->core, SIGNAL(flagsChanged()), this, SLOT(updateViews()));
 
@@ -196,6 +199,11 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
 }
 
 
+void MemoryWidget::on_globalSeekTo(RVA addr)
+{
+    disasm_top_offset = addr;
+    updateViews();
+}
 
 void MemoryWidget::on_cursorAddressChanged(RVA addr)
 {
@@ -397,11 +405,11 @@ RVA MemoryWidget::readCurrentDisassemblyOffset()
     QStringList parts = lastline.split(" ", QString::SkipEmptyParts);
 
     if(parts.isEmpty())
-        return 0;
+        return RVA_INVALID;
 
     QString ele = parts[0];
     if (!ele.contains("0x"))
-        return 0;
+        return RVA_INVALID;
 
     return ele.toULongLong(0, 16);
 }
@@ -476,12 +484,11 @@ void MemoryWidget::disasmScrolled()
 
         QTextCursor tc = this->disasTextEdit->textCursor();
         tc.movePosition(QTextCursor::End);
-        tc.select(QTextCursor::LineUnderCursor);
-        QString lastline = tc.selectedText();
-        QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-        if (ele.contains("0x"))
+        RVA offset = readCurrentDisassemblyOffset();
+
+        if(offset != RVA_INVALID)
         {
-            this->main->core->seek(ele);
+            main->core->seek(offset);
             QString raw = this->main->core->cmd("pd 200");
             QString txt = raw.section("\n", 1, -1);
             //this->disasTextEdit->appendPlainText(" ;\n ; New content here\n ;\n " + txt.trimmed());
@@ -494,6 +501,7 @@ void MemoryWidget::disasmScrolled()
             QString lastline = tc.selectedText();
             this->main->addDebugOutput("Last line: " + lastline);
         }
+
         // Code below will be used to append more disasm upwards, one day
     } /* else if (sb->value() < sb->minimum() + 10) {
         //this->main->add_debug_output("Begining is coming");
@@ -547,41 +555,42 @@ void MemoryWidget::refreshDisasm(const QString &offset)
     // Get disas at offset
     if (!offset.isEmpty())
     {
+        disasm_top_offset = offset.toULongLong(nullptr, 16);
         this->main->core->cmd("s " + offset);
     }
     else
     {
-        // Get current offset
-        QTextCursor tc = this->disasTextEdit->textCursor();
-        tc.select(QTextCursor::LineUnderCursor);
-        QString lastline = tc.selectedText();
-        QStringList elements = lastline.split(" ", QString::SkipEmptyParts);
-        if (elements.length() > 0)
-        {
-            QString ele = elements[0];
-            if (ele.contains("0x"))
-            {
-                QString fcn = this->main->core->cmdFunctionAt(ele);
-                if (fcn != "")
-                {
-                    this->main->core->cmd("s " + fcn);
-                }
-                else
-                {
-                    this->main->core->cmd("s " + ele);
-                }
-            }
-        }
+        main->core->cmd(QString("s %1").arg(disasm_top_offset));
     }
 
     QString txt2 = this->main->core->cmd("pd 100");
+
+    int scroll_before = disasTextEdit->verticalScrollBar()->value();
+
+    printf("scroll before: %d\n", scroll_before);
+
+    auto cursor = disasTextEdit->textCursor();
+
     this->disasTextEdit->setPlainText(txt2.trimmed());
+
+    auto cursor2 = disasTextEdit->textCursor();
+    cursor2.setPosition(cursor.position());
+    disasTextEdit->setTextCursor(cursor2);
+
+    disasTextEdit->verticalScrollBar()->setValue(scroll_before);
+
+
 
     // TODO: Fixx this ugly code
     //QString temp_seek = this->main->core->cmd("s").split("0x")[1].trimmed();
-    QString s = this->normalize_addr(this->main->core->cmd("s"));
+    //QString s = this->normalize_addr(this->main->core->cmd("s"));
     //this->main->add_debug_output("Offset to search: " + s);
-    this->disasTextEdit->ensureCursorVisible();
+
+
+
+    //this->disasTextEdit->ensureCursorVisible();
+
+
     /*this->disasTextEdit->moveCursor(QTextCursor::End);
 
     while (this->disasTextEdit->find(QRegExp("^" + s), QTextDocument::FindBackward))
@@ -1986,7 +1995,7 @@ void MemoryWidget::updateViews()
         // Disasm
         if (this->last_disasm_fcn != cursor_addr)
         {
-            this->refreshDisasm(cursor_addr_string);
+            this->refreshDisasm();
             this->last_disasm_fcn = cursor_addr;
         }
     }

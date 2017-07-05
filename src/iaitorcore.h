@@ -46,6 +46,8 @@ public:
 
 typedef ut64 RVA;
 
+#define RVA_INVALID UT64_MAX
+
 inline QString RAddressString(RVA addr)
 {
     return QString::asprintf("%#010llx", addr);

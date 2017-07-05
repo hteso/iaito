@@ -105,6 +105,8 @@ private:
     ut64 hexdumpBottomOffset;
     QString last_fcn;
 
+    RVA disasm_top_offset;
+
     RVA last_disasm_fcn;
     RVA last_graph_fcn;
     RVA last_hexdump_fcn;
@@ -115,6 +117,7 @@ private:
     void setScrollMode();
 
 private slots:
+    void on_globalSeekTo(RVA addr);
     void on_cursorAddressChanged(RVA addr);
 
     void highlightCurrentLine();
