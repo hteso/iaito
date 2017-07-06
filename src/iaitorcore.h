@@ -247,6 +247,7 @@ public:
     Sdb *db;
 
 signals:
+    // TODO: create a more sophisticated update-event system
     void functionRenamed(QString prev_name, QString new_name);
     void flagsChanged();
     void commentsChanged();

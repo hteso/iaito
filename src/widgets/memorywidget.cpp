@@ -467,10 +467,9 @@ void MemoryWidget::replaceTextDisasm(QString txt)
     ui->disasTextEdit_2->setPlainText(txt);
 }
 
-
-void MemoryWidget::disasmScrolled()
+bool MemoryWidget::loadMoreDisassembly()
 {
-    /*
+/*
      * Add more disasm as the user scrolls
      * Not working properly when scrolling upwards
      * r2 doesn't handle properly 'pd-' for archs with variable instruction size
@@ -480,6 +479,8 @@ void MemoryWidget::disasmScrolled()
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
 
     QScrollBar *sb = this->disasTextEdit->verticalScrollBar();
+
+    bool loaded = false;
 
     if (sb->value() > sb->maximum() - 10)
     {
@@ -504,6 +505,8 @@ void MemoryWidget::disasmScrolled()
             QString lastline = tc.selectedText();
             this->main->addDebugOutput("Last line: " + lastline);
         }
+
+        loaded = true;
 
         // Code below will be used to append more disasm upwards, one day
     } /* else if (sb->value() < sb->minimum() + 10) {
@@ -540,6 +543,14 @@ void MemoryWidget::disasmScrolled()
 
     // Reconnect scroll signals
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
+
+    return loaded;
+}
+
+
+void MemoryWidget::disasmScrolled()
+{
+    loadMoreDisassembly();
 }
 
 void MemoryWidget::refreshDisasm()
@@ -565,7 +576,6 @@ void MemoryWidget::refreshDisasm()
     }
 
     QString txt2 = this->main->core->cmd("pd 200");
-    // TODO: disassemble more for simple refresh if scrolled beyond 200 lines
 
     disasTextEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
@@ -581,6 +591,15 @@ void MemoryWidget::refreshDisasm()
     disasTextEdit->setTextCursor(cursor);
 
     disasTextEdit->verticalScrollBar()->setValue(scroll_pos);
+
+    // load more disassembly if necessary
+    static const int load_more_limit = 10; // limit passes, so it can't take forever
+    for(int load_more_i = 0; load_more_i < load_more_limit; load_more_i++)
+    {
+        if(!loadMoreDisassembly())
+            break;
+        disasTextEdit->verticalScrollBar()->setValue(scroll_pos);
+    }
 
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     connect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));

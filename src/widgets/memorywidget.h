@@ -116,6 +116,8 @@ private:
 
     void setScrollMode();
 
+    bool loadMoreDisassembly();
+
 private slots:
     void on_globalSeekTo(RVA addr);
     void on_cursorAddressChanged(RVA addr);
