@@ -404,7 +404,7 @@ RVA MemoryWidget::readCurrentDisassemblyOffset()
     QString lastline = tc.selectedText();
     QStringList parts = lastline.split(" ", QString::SkipEmptyParts);
 
-    if(parts.isEmpty())
+    if (parts.isEmpty())
         return RVA_INVALID;
 
     QString ele = parts[0];
@@ -469,11 +469,11 @@ void MemoryWidget::replaceTextDisasm(QString txt)
 
 bool MemoryWidget::loadMoreDisassembly()
 {
-/*
-     * Add more disasm as the user scrolls
-     * Not working properly when scrolling upwards
-     * r2 doesn't handle properly 'pd-' for archs with variable instruction size
-     */
+    /*
+         * Add more disasm as the user scrolls
+         * Not working properly when scrolling upwards
+         * r2 doesn't handle properly 'pd-' for archs with variable instruction size
+         */
 
     // Disconnect scroll signals to add more content
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
@@ -490,7 +490,7 @@ bool MemoryWidget::loadMoreDisassembly()
         tc.movePosition(QTextCursor::End);
         RVA offset = readCurrentDisassemblyOffset();
 
-        if(offset != RVA_INVALID)
+        if (offset != RVA_INVALID)
         {
             main->core->seek(offset);
             QString raw = this->main->core->cmd("pd 200");
@@ -594,9 +594,9 @@ void MemoryWidget::refreshDisasm()
 
     // load more disassembly if necessary
     static const int load_more_limit = 10; // limit passes, so it can't take forever
-    for(int load_more_i = 0; load_more_i < load_more_limit; load_more_i++)
+    for (int load_more_i = 0; load_more_i < load_more_limit; load_more_i++)
     {
-        if(!loadMoreDisassembly())
+        if (!loadMoreDisassembly())
             break;
         disasTextEdit->verticalScrollBar()->setValue(scroll_pos);
     }
@@ -1993,7 +1993,7 @@ void MemoryWidget::updateViews(RVA offset)
 
     QString cursor_addr_string = RAddressString(cursor_addr);
 
-    if(offset != RVA_INVALID)
+    if (offset != RVA_INVALID)
         next_disasm_top_offset = offset;
 
     if (index == 0)

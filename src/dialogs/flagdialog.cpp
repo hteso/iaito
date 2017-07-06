@@ -3,8 +3,8 @@
 #include "flagdialog.h"
 
 FlagDialog::FlagDialog(IaitoRCore *core, RVA offset, QWidget *parent) :
-        QDialog(parent),
-        ui(new Ui::FlagDialog)
+    QDialog(parent),
+    ui(new Ui::FlagDialog)
 {
     ui->setupUi(this);
     setWindowFlags(windowFlags() & (~Qt::WindowContextHelpButtonHint));

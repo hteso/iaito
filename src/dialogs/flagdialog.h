@@ -11,7 +11,7 @@ namespace Ui
 
 class FlagDialog : public QDialog
 {
-Q_OBJECT
+    Q_OBJECT
 
 public:
     explicit FlagDialog(IaitoRCore *core, RVA offset, QWidget *parent = 0);
