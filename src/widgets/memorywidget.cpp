@@ -42,11 +42,11 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     this->memTabWidget = ui->memTabWidget;
 
     this->last_fcn = "entry0";
-    this->last_disasm_fcn = 0; //"";
     this->last_graph_fcn = 0; //"";
     this->last_hexdump_fcn = 0; //"";
 
     disasm_top_offset = 0;
+    next_disasm_top_offset = 0;
 
     // Increase asm text edit margin
     QTextDocument *asm_docu = this->disasTextEdit->document();
@@ -194,6 +194,7 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     connect(main, SIGNAL(globalSeekTo(RVA)), this, SLOT(on_globalSeekTo(RVA)));
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(on_cursorAddressChanged(RVA)));
     connect(main->core, SIGNAL(flagsChanged()), this, SLOT(updateViews()));
+    connect(main->core, SIGNAL(commentsChanged()), this, SLOT(updateViews()));
 
     fillPlugins();
 }
@@ -201,8 +202,7 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
 
 void MemoryWidget::on_globalSeekTo(RVA addr)
 {
-    disasm_top_offset = addr;
-    updateViews();
+    updateViews(addr);
 }
 
 void MemoryWidget::on_cursorAddressChanged(RVA addr)
@@ -424,11 +424,13 @@ void MemoryWidget::setup()
     setScrollMode();
 
     const QString off = main->core->cmd("afo entry0").trimmed();
+    RVA offset = off.toULongLong(0, 16);
+    updateViews(offset);
 
-    refreshDisasm(off);
-    refreshHexdump(off);
-    create_graph(off);
-    get_refs_data(off.toLongLong(0, 16));
+    //refreshDisasm();
+    //refreshHexdump(off);
+    //create_graph(off);
+    get_refs_data(offset);
     //setFcnName(off);
 }
 
@@ -464,6 +466,7 @@ void MemoryWidget::replaceTextDisasm(QString txt)
     //document->undo();
     ui->disasTextEdit_2->setPlainText(txt);
 }
+
 
 void MemoryWidget::disasmScrolled()
 {
@@ -539,64 +542,45 @@ void MemoryWidget::disasmScrolled()
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
 }
 
-void MemoryWidget::refreshDisasm(const QString &offset)
+void MemoryWidget::refreshDisasm()
 {
     RCoreLocked lcore = this->main->core->core();
-    // we must store those ranges somewhere, to handle scroll
-    //ut64 addr = lcore->offset;
-    //int length = lcore->num->value;
-
-    //printf("refreshDisasm %s\n", offset.toLocal8Bit().constData());
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     disconnect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
 
-    // Get disas at offset
-    if (!offset.isEmpty())
+    RVA offset = next_disasm_top_offset;
+    next_disasm_top_offset = RVA_INVALID;
+    bool offset_changed = offset != RVA_INVALID;
+
+    if (offset_changed) // new offset (seek)
     {
-        disasm_top_offset = offset.toULongLong(nullptr, 16);
-        this->main->core->cmd("s " + offset);
+        disasm_top_offset = offset;
+        this->main->core->cmd(QString("s %1").arg(offset));
     }
-    else
+    else // simple refresh
     {
         main->core->cmd(QString("s %1").arg(disasm_top_offset));
     }
 
-    QString txt2 = this->main->core->cmd("pd 100");
+    QString txt2 = this->main->core->cmd("pd 200");
+    // TODO: disassemble more for simple refresh if scrolled beyond 200 lines
 
-    int scroll_before = disasTextEdit->verticalScrollBar()->value();
+    disasTextEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
 
-    printf("scroll before: %d\n", scroll_before);
-
-    auto cursor = disasTextEdit->textCursor();
+    // if the offset changed, jump to the top
+    // otherwise try to retain the position
+    int cursor_pos = offset_changed ? 0 : disasTextEdit->textCursor().position();
+    int scroll_pos = offset_changed ? 0 : disasTextEdit->verticalScrollBar()->value();
 
     this->disasTextEdit->setPlainText(txt2.trimmed());
 
-    auto cursor2 = disasTextEdit->textCursor();
-    cursor2.setPosition(cursor.position());
-    disasTextEdit->setTextCursor(cursor2);
+    auto cursor = disasTextEdit->textCursor();
+    cursor.setPosition(cursor_pos);
+    disasTextEdit->setTextCursor(cursor);
 
-    disasTextEdit->verticalScrollBar()->setValue(scroll_before);
-
-
-
-    // TODO: Fixx this ugly code
-    //QString temp_seek = this->main->core->cmd("s").split("0x")[1].trimmed();
-    //QString s = this->normalize_addr(this->main->core->cmd("s"));
-    //this->main->add_debug_output("Offset to search: " + s);
-
-
-
-    //this->disasTextEdit->ensureCursorVisible();
-
-
-    /*this->disasTextEdit->moveCursor(QTextCursor::End);
-
-    while (this->disasTextEdit->find(QRegExp("^" + s), QTextDocument::FindBackward))
-    {
-        this->disasTextEdit->moveCursor(QTextCursor::StartOfWord, QTextCursor::MoveAnchor);
-    }*/
+    disasTextEdit->verticalScrollBar()->setValue(scroll_pos);
 
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     connect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
@@ -1980,7 +1964,7 @@ void MemoryWidget::on_memTabWidget_currentChanged(int /*index*/)
     this->updateViews();
 }
 
-void MemoryWidget::updateViews()
+void MemoryWidget::updateViews(RVA offset)
 {
     // Update only the selected view to improve performance
 
@@ -1990,14 +1974,13 @@ void MemoryWidget::updateViews()
 
     QString cursor_addr_string = RAddressString(cursor_addr);
 
+    if(offset != RVA_INVALID)
+        next_disasm_top_offset = offset;
+
     if (index == 0)
     {
         // Disasm
-        if (this->last_disasm_fcn != cursor_addr)
-        {
-            this->refreshDisasm();
-            this->last_disasm_fcn = cursor_addr;
-        }
+        this->refreshDisasm();
     }
     else if (index == 1)
     {

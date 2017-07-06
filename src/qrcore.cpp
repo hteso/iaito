@@ -331,13 +331,9 @@ void IaitoRCore::setComment(RVA addr, QString cmt)
 {
     //r_meta_add (core->anal, 'C', addr, 1, cmt.toUtf8());
     cmd("CC " + cmt + " @ " + QString::number(addr));
+    emit commentsChanged();
 }
 
-void IaitoRCore::setComment(QString addr, QString cmt)
-{
-    //r_meta_add (core->anal, 'C', addr, 1, cmt.toUtf8());
-    cmd("CC " + cmt + " @ " + addr);
-}
 
 void IaitoRCore::delComment(ut64 addr)
 {

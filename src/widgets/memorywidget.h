@@ -66,7 +66,7 @@ public slots:
 
     void replaceTextDisasm(QString txt);
 
-    void refreshDisasm(const QString &offset = QString());
+    void refreshDisasm();
 
     void refreshHexdump(const QString &where = QString());
 
@@ -92,7 +92,7 @@ public slots:
 
     void frameLoadFinished(bool ok);
 
-    void updateViews();
+    void updateViews(RVA offset = RVA_INVALID);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -106,8 +106,8 @@ private:
     QString last_fcn;
 
     RVA disasm_top_offset;
+    RVA next_disasm_top_offset;
 
-    RVA last_disasm_fcn;
     RVA last_graph_fcn;
     RVA last_hexdump_fcn;
 
