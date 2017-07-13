@@ -1,5 +1,5 @@
-#ifndef QRCORE_H
-#define QRCORE_H
+#ifndef IAITORCORE_H
+#define IAITORCORE_H
 
 #include <QMap>
 #include <QDebug>
@@ -22,7 +22,7 @@
 
 #define HAVE_LATEST_LIBR2 false
 
-#define QRListForeach(list, it, type, x) \
+#define IaitoRListForeach(list, it, type, x) \
     if (list) for (it = list->head; it && ((x=(type*)it->data)); it = it->n)
 
 #define __alert(x) QMessageBox::question (this, "Alert", QString(x), QMessageBox::Ok)
@@ -42,9 +42,11 @@ public:
     RCore *operator->() const;
 };
 
-#define QNOTUSED(x) do { (void)(x); } while ( 0 );
+#define IAITONOTUSED(x) do { (void)(x); } while ( 0 );
 
 typedef ut64 RVA;
+
+#define RVA_INVALID UT64_MAX
 
 inline QString RAddressString(RVA addr)
 {
@@ -163,17 +165,18 @@ Q_DECLARE_METATYPE(FlagDescription)
 Q_DECLARE_METATYPE(XrefDescription)
 Q_DECLARE_METATYPE(EntrypointDescription)
 
-class QRCore : public QObject
+class IaitoRCore : public QObject
 {
     Q_OBJECT
 
 public:
     QString projectPath;
 
-    explicit QRCore(QObject *parent = 0);
-    ~QRCore();
+    explicit IaitoRCore(QObject *parent = 0);
+    ~IaitoRCore();
 
     RVA getOffset() const                           { return core_->offset; }
+    static QString sanitizeStringForCommand(QString s);
     int getCycloComplex(ut64 addr);
     int getFcnSize(ut64 addr);
     int fcnCyclomaticComplexity(ut64 addr);
@@ -183,7 +186,6 @@ public:
     QJsonDocument cmdj(const QString &str);
     void renameFunction(QString prev_name, QString new_name);
     void setComment(RVA addr, QString cmt);
-    void setComment(QString addr, QString cmt);
     void delComment(ut64 addr);
     QMap<QString, QList<QList<QString>>> getNestedComments();
     void setOptions(QString key);
@@ -248,6 +250,8 @@ public:
 
     QList<XrefDescription> getXRefs(RVA addr, bool to, bool whole_function, const QString &filterType = QString::null);
 
+    void addFlag(RVA offset, QString name, RVA size);
+
     RCoreLocked core() const;
 
     /* fields */
@@ -255,7 +259,10 @@ public:
     Sdb *db;
 
 signals:
+    // TODO: create a more sophisticated update-event system
     void functionRenamed(QString prev_name, QString new_name);
+    void flagsChanged();
+    void commentsChanged();
 
 public slots:
 
@@ -267,4 +274,4 @@ private:
     RCore *core_;
 };
 
-#endif // QRCORE_H
+#endif // IAITORCORE_H

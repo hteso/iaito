@@ -68,13 +68,13 @@ SOURCES += \
     widgets/consolewidget.cpp \
     radarewebserver.cpp \
     widgets/entrypointwidget.cpp
+    dialogs/flagdialog.cpp
 
 HEADERS  += \
     mainwindow.h \
     newfiledialog.h \
     optionsdialog.h \
     highlighter.h \
-    qrcore.h \
     createnewdialog.h \
     hexascii_highlighter.h \
     widgets/pieview.h \
@@ -93,7 +93,6 @@ HEADERS  += \
     widgets/flagswidget.h \
     widgets/memorywidget.h \
     widgets/exportswidget.h \
-    qrdisasm.h \
     widgets/sdbdock.h \
     analthread.h \
     dialogs/commentsdialog.h \
@@ -109,6 +108,9 @@ HEADERS  += \
     radarewebserver.h \
     settings.h \
     widgets/entrypointwidget.h
+    iaitorcore.h \
+    iaitordisasm.h \
+    dialogs/flagdialog.h
 
 FORMS    += \
     mainwindow.ui \
@@ -135,6 +137,7 @@ FORMS    += \
     widgets/sectionsdock.ui \
     widgets/consolewidget.ui \
     widgets/entrypointwidget.ui
+    dialogs/flagdialog.ui
 
 RESOURCES += \
     resources.qrc
