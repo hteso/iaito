@@ -1092,8 +1092,8 @@ QList<SectionDescription> IaitoRCore::getAllSections()
     return ret;
 }
 
-<<<<<<< HEAD
-QList<EntrypointDescription> QRCore::getAllEntrypoint()
+
+QList<EntrypointDescription> IaitoRCore::getAllEntrypoint()
 {
     CORE_LOCK();
     QList<EntrypointDescription> ret;
