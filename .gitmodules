@@ -4,4 +4,4 @@
 [submodule "radare2"]
 	path = radare2
 	url = https://github.com/radare/radare2
-	branch = 902ce266e50ef40fc4018afe8a487e5437aad94d
+	branch = 76448886cb808ddbac9684c3f0a7dcc6fe457e9a
