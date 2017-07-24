@@ -1,7 +1,7 @@
 #ifndef MEMORYWIDGET_H
 #define MEMORYWIDGET_H
 
-#include "qrcore.h"
+#include "iaitorcore.h"
 #include "highlighter.h"
 #include "hexascii_highlighter.h"
 #include "hexhighlighter.h"
@@ -66,15 +66,13 @@ public slots:
 
     void replaceTextDisasm(QString txt);
 
-    void refreshDisasm(const QString &offset = QString());
+    void refreshDisasm();
 
     void refreshHexdump(const QString &where = QString());
 
-    void fill_refs(QList<QStringList> refs, QList<QStringList> xrefs, QList<int> graph_data);
+    void fill_refs(QList<XrefDescription> refs, QList<XrefDescription> xrefs, QList<int> graph_data);
 
     void fillOffsetInfo(QString off);
-
-    void get_refs_data(const QString &offset);
 
     void seek_to(const QString &offset);
 
@@ -94,7 +92,7 @@ public slots:
 
     void frameLoadFinished(bool ok);
 
-    void updateViews();
+    void updateViews(RVA offset = RVA_INVALID);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -107,15 +105,21 @@ private:
     ut64 hexdumpBottomOffset;
     QString last_fcn;
 
-    RVA last_disasm_fcn;
+    RVA disasm_top_offset;
+    RVA next_disasm_top_offset;
+
     RVA last_graph_fcn;
     RVA last_hexdump_fcn;
 
     void setFcnName(RVA addr);
+    void get_refs_data(RVA addr);
 
     void setScrollMode();
 
+    bool loadMoreDisassembly();
+
 private slots:
+    void on_globalSeekTo(RVA addr);
     void on_cursorAddressChanged(RVA addr);
 
     void highlightCurrentLine();
@@ -123,6 +127,7 @@ private slots:
     void highlightHexCurrentLine();
     void highlightPreviewCurrentLine();
     void highlightDecoCurrentLine();
+    RVA readCurrentDisassemblyOffset();
     void setFonts(QFont font);
 
     void highlightHexWords(const QString &str);
@@ -139,6 +144,7 @@ private slots:
     void showHexASCIIContextMenu(const QPoint &pt);
     void on_actionSend_to_Notepad_triggered();
     void on_actionDisasAdd_comment_triggered();
+    void on_actionAddFlag_triggered();
     void on_actionFunctionsRename_triggered();
     void on_actionDisas_ShowHideBytes_triggered();
 
@@ -159,8 +165,9 @@ private slots:
     void hexScrolled();
     QList<QString> get_hexdump(const QString &offset);
 
+    void showXrefsDialog();
     //void showDisas();
-    void showHexdump();
+    //void showHexdump();
     //void showGraph();
     void cycleViews();
     void on_xreFromTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int column);

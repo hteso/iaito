@@ -1,5 +1,5 @@
 #include "analthread.h"
-#include "qrcore.h"
+#include "iaitorcore.h"
 #include <QDebug>
 
 AnalThread::AnalThread(QWidget *parent) :
@@ -18,7 +18,7 @@ AnalThread::~AnalThread()
     }
 }
 
-void AnalThread::start(QRCore *core, int level, QList<QString> advanced)
+void AnalThread::start(IaitoRCore *core, int level, QList<QString> advanced)
 {
     this->core = core;
     this->level = level;

@@ -2,7 +2,7 @@
 #include "ui_consolewidget.h"
 
 #include "helpers.h"
-#include "qrcore.h"
+#include "iaitorcore.h"
 
 #include <QScrollBar>
 #include <QMenu>
@@ -92,7 +92,7 @@ static bool isForbidden(const QString &input)
 
 
 
-ConsoleWidget::ConsoleWidget(QRCore *core, QWidget *parent) :
+ConsoleWidget::ConsoleWidget(IaitoRCore *core, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::ConsoleWidget),
     core(core),
@@ -234,7 +234,7 @@ void ConsoleWidget::historyNext()
         {
             if (lastHistoryPosition >= history.size())
             {
-                lastHistoryPosition = history.size() -1 ;
+                lastHistoryPosition = history.size() - 1 ;
             }
 
             --lastHistoryPosition;
@@ -257,7 +257,7 @@ void ConsoleWidget::historyPrev()
 {
     if (!history.isEmpty())
     {
-        if (lastHistoryPosition >= history.size() -1)
+        if (lastHistoryPosition >= history.size() - 1)
         {
             lastHistoryPosition = history.size() - 2;
         }

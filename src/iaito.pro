@@ -5,6 +5,9 @@ TARGET = iaito
 # The application version
 win32 {
   VERSION = 1.0
+# Generate debug symbols in release mode
+QMAKE_CXXFLAGS_RELEASE += -Zi   # Compiler
+QMAKE_LFLAGS_RELEASE += /DEBUG  # Linker
 } else {
   VERSION = 1.0-dev
 }
@@ -63,14 +66,15 @@ SOURCES += \
     hexhighlighter.cpp \
     widgets/sectionsdock.cpp \
     widgets/consolewidget.cpp \
-    radarewebserver.cpp
+    radarewebserver.cpp \
+    widgets/entrypointwidget.cpp \
+    dialogs/flagdialog.cpp
 
 HEADERS  += \
     mainwindow.h \
     newfiledialog.h \
     optionsdialog.h \
     highlighter.h \
-    qrcore.h \
     createnewdialog.h \
     hexascii_highlighter.h \
     widgets/pieview.h \
@@ -89,7 +93,6 @@ HEADERS  += \
     widgets/flagswidget.h \
     widgets/memorywidget.h \
     widgets/exportswidget.h \
-    qrdisasm.h \
     widgets/sdbdock.h \
     analthread.h \
     dialogs/commentsdialog.h \
@@ -103,8 +106,11 @@ HEADERS  += \
     widgets/dockwidget.h \
     widgets/consolewidget.h \
     radarewebserver.h \
-    settings.h
-
+    settings.h \
+    widgets/entrypointwidget.h \
+    iaitorcore.h \
+    iaitordisasm.h \
+    dialogs/flagdialog.h
 FORMS    += \
     mainwindow.ui \
     newfiledialog.ui \
@@ -128,7 +134,9 @@ FORMS    += \
     widgets/dashboard.ui \
     dialogs/xrefsdialog.ui \
     widgets/sectionsdock.ui \
-    widgets/consolewidget.ui
+    widgets/consolewidget.ui \
+    widgets/entrypointwidget.ui \
+    dialogs/flagdialog.ui
 
 RESOURCES += \
     resources.qrc

@@ -2,12 +2,12 @@
 #define MAINWINDOW_H
 
 #include "radarewebserver.h"
-#include "qrcore.h" // only needed for ut64
+#include "iaitorcore.h" // only needed for ut64
 
 #include <QMainWindow>
 #include <QList>
 
-class QRCore;
+class IaitoRCore;
 class DockWidget;
 class Omnibar;
 class MemoryWidget;
@@ -30,6 +30,7 @@ class SdbDock;
 class QAction;
 class SectionsDock;
 class ConsoleWidget;
+class EntrypointWidget;
 
 class QDockWidget;
 
@@ -44,7 +45,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    QRCore *core;
+    IaitoRCore *core;
     MemoryWidget    *memoryDock;
     Notepad         *notepadDock;
 
@@ -71,7 +72,6 @@ public:
     void updateFrames();
     void refreshFunctions();
     void refreshComments();
-    void get_refs(const QString &offset);
     void addOutput(const QString &msg);
     void addDebugOutput(const QString &msg);
     void sendToNotepad(const QString &txt);
@@ -81,6 +81,7 @@ public:
     void refreshOmniBar(const QStringList &flags);
 
 signals:
+    void globalSeekTo(RVA address);
     void cursorAddressChanged(RVA address);
 
 public slots:
@@ -89,6 +90,7 @@ public slots:
 
     void def_theme();
 
+    void on_actionEntry_points_triggered();
     void on_actionFunctions_triggered();
     void on_actionImports_triggered();
     void on_actionExports_triggered();
@@ -180,7 +182,6 @@ private:
 
     bool doLock;
     void refreshMem();
-    void refreshMem(RVA offset);
     ut64 hexdumpTopOffset;
     ut64 hexdumpBottomOffset;
     QString filename;
@@ -189,6 +190,7 @@ private:
     Highlighter      *highlighter;
     AsciiHighlighter *hex_highlighter;
     GraphicsBar      *graphicsBar;
+    EntrypointWidget *entrypointDock;
     FunctionsWidget  *functionsDock;
     ImportsWidget    *importsDock;
     ExportsWidget    *exportsDock;

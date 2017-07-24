@@ -508,54 +508,8 @@ void FunctionsWidget::on_action_References_triggered()
     // Get selected item in functions tree view
     QTreeView *treeView = getCurrentTreeView();
     FunctionDescription function = treeView->selectionModel()->currentIndex().data(FunctionModel::FunctionDescriptionRole).value<FunctionDescription>();
-
-    //this->main->add_debug_output("Addr: " + address);
-
-    // Get function for clicked offset
-    RAnalFunction *fcn = this->main->core->functionAt(function.offset);
-
     XrefsDialog *x = new XrefsDialog(this->main, this);
-    x->setWindowTitle("X-Refs for function " + QString::fromUtf8(fcn->name));
-
-    // Get Refs and Xrefs
-    QList<QStringList> ret_refs;
-    QList<QStringList> ret_xrefs;
-
-    // refs = calls q hace esa funcion
-    QList<QString> refs = this->main->core->getFunctionRefs(fcn->addr, 'C');
-    if (refs.size() > 0)
-    {
-        for (int i = 0; i < refs.size(); ++i)
-        {
-            //this->main->add_debug_output(refs.at(i));
-            QStringList retlist = refs.at(i).split(",");
-            QStringList temp;
-            QString addr = retlist.at(2);
-            temp << addr;
-            QString op = this->main->core->cmd("pi 1 @ " + addr);
-            temp << op.simplified();
-            ret_refs << temp;
-        }
-    }
-
-    // xrefs = calls a esa funcion
-    //qDebug() << this->main->core->getFunctionXrefs(offset.toLong(&ok, 16));
-    QList<QString> xrefs = this->main->core->getFunctionXrefs(fcn->addr);
-    if (xrefs.size() > 0)
-    {
-        for (int i = 0; i < xrefs.size(); ++i)
-        {
-            //this->main->add_debug_output(xrefs.at(i));
-            QStringList retlist = xrefs.at(i).split(",");
-            QStringList temp;
-            QString addr = retlist.at(1);
-            temp << addr;
-            QString op = this->main->core->cmd("pi 1 @ " + addr);
-            temp << op.simplified();
-            ret_xrefs << temp;
-        }
-    }
-    x->fillRefs(ret_refs, ret_xrefs);
+    x->fillRefsForAddress(function.offset, function.name, true);
     x->exec();
 }
 
@@ -617,18 +571,23 @@ void FunctionsWidget::setScrollMode()
     qhelpers::setVerticalScrollMode(ui->functionsTreeView);
 }
 
-void FunctionsWidget::show_filter() {
+void FunctionsWidget::show_filter()
+{
     ui->filterLineEdit->setVisible(true);
     ui->closeFilterButton->setVisible(true);
     ui->filterLineEdit->setFocus();
 }
 
-void FunctionsWidget::clear_filter() {
-    if (ui->filterLineEdit->text() == "") {
+void FunctionsWidget::clear_filter()
+{
+    if (ui->filterLineEdit->text() == "")
+    {
         ui->filterLineEdit->setVisible(false);
         ui->closeFilterButton->setVisible(false);
         ui->functionsTreeView->setFocus();
-    } else {
+    }
+    else
+    {
         ui->filterLineEdit->setText("");
     }
 }

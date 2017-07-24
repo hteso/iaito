@@ -1,7 +1,7 @@
 #ifndef FLAGSWIDGET_H
 #define FLAGSWIDGET_H
 
-#include "qrcore.h"
+#include "iaitorcore.h"
 #include "dockwidget.h"
 #include <QAbstractItemModel>
 #include <QSortFilterProxyModel>
@@ -69,6 +69,8 @@ public:
 private slots:
     void on_flagsTreeView_doubleClicked(const QModelIndex &index);
     void on_flagspaceCombo_currentTextChanged(const QString &arg1);
+
+    void flagsChanged();
 
 private:
     Ui::FlagsWidget *ui;

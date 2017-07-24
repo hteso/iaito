@@ -6,6 +6,7 @@
 #include "dialogs/xrefsdialog.h"
 #include "dialogs/renamedialog.h"
 #include "dialogs/commentsdialog.h"
+#include "dialogs/flagdialog.h"
 
 #include <QTemporaryFile>
 #include <QFontDialog>
@@ -41,9 +42,11 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     this->memTabWidget = ui->memTabWidget;
 
     this->last_fcn = "entry0";
-    this->last_disasm_fcn = 0; //"";
     this->last_graph_fcn = 0; //"";
     this->last_hexdump_fcn = 0; //"";
+
+    disasm_top_offset = 0;
+    next_disasm_top_offset = 0;
 
     // Increase asm text edit margin
     QTextDocument *asm_docu = this->disasTextEdit->document();
@@ -151,10 +154,11 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     connect(ui->hexASCIIText_2->verticalScrollBar(), SIGNAL(valueChanged(int)),
             ui->hexHexText_2->verticalScrollBar(), SLOT(setValue(int)));
 
-    // X to show hexdump
-    QShortcut *hexdump_shortcut = new QShortcut(QKeySequence(Qt::Key_X), this->main);
-    connect(hexdump_shortcut, SIGNAL(activated()), this, SLOT(showHexdump()));
-    //hexdump_shortcut->setContext(Qt::WidgetShortcut);
+    // x or X to show XRefs
+    connect(new QShortcut(QKeySequence(Qt::Key_X), ui->disasTextEdit_2),
+            SIGNAL(activated()), this, SLOT(showXrefsDialog()));
+    connect(new QShortcut(Qt::SHIFT + Qt::Key_X, ui->disasTextEdit_2),
+            SIGNAL(activated()), this, SLOT(showXrefsDialog()));
 
     // Space to switch between disassembly and graph
     QShortcut *graph_shortcut = new QShortcut(QKeySequence(Qt::Key_Space), this->main);
@@ -170,11 +174,6 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
     QShortcut *rename_shortcut = new QShortcut(QKeySequence(Qt::Key_N), ui->disasTextEdit_2);
     connect(rename_shortcut, SIGNAL(activated()), this, SLOT(on_actionFunctionsRename_triggered()));
     rename_shortcut->setContext(Qt::WidgetShortcut);
-
-    // R to show XRefs
-    QShortcut *xrefs_shortcut = new QShortcut(QKeySequence(Qt::Key_R), ui->disasTextEdit_2);
-    connect(xrefs_shortcut, SIGNAL(activated()), this, SLOT(on_actionXRefs_triggered()));
-    xrefs_shortcut->setContext(Qt::WidgetShortcut);
 
     // Esc to seek back
     QShortcut *back_shortcut = new QShortcut(QKeySequence(Qt::Key_Escape), ui->disasTextEdit_2);
@@ -192,16 +191,24 @@ MemoryWidget::MemoryWidget(MainWindow *main) :
 
     connect(ui->graphWebView->page(), SIGNAL(loadFinished(bool)), this, SLOT(frameLoadFinished(bool)));
 
+    connect(main, SIGNAL(globalSeekTo(RVA)), this, SLOT(on_globalSeekTo(RVA)));
     connect(main, SIGNAL(cursorAddressChanged(RVA)), this, SLOT(on_cursorAddressChanged(RVA)));
+    connect(main->core, SIGNAL(flagsChanged()), this, SLOT(updateViews()));
+    connect(main->core, SIGNAL(commentsChanged()), this, SLOT(updateViews()));
 
     fillPlugins();
 }
 
 
+void MemoryWidget::on_globalSeekTo(RVA addr)
+{
+    updateViews(addr);
+}
 
 void MemoryWidget::on_cursorAddressChanged(RVA addr)
 {
     setFcnName(addr);
+    get_refs_data(addr);
 }
 
 /*
@@ -389,6 +396,23 @@ void MemoryWidget::highlightDecoCurrentLine()
     ui->decoTextEdit->setExtraSelections(extraSelections);
 }
 
+RVA MemoryWidget::readCurrentDisassemblyOffset()
+{
+    // TODO: do this in a different way without parsing the disassembly text
+    QTextCursor tc = this->disasTextEdit->textCursor();
+    tc.select(QTextCursor::LineUnderCursor);
+    QString lastline = tc.selectedText();
+    QStringList parts = lastline.split(" ", QString::SkipEmptyParts);
+
+    if (parts.isEmpty())
+        return RVA_INVALID;
+
+    QString ele = parts[0];
+    if (!ele.contains("0x"))
+        return RVA_INVALID;
+
+    return ele.toULongLong(0, 16);
+}
 
 MemoryWidget::~MemoryWidget()
 {
@@ -400,11 +424,13 @@ void MemoryWidget::setup()
     setScrollMode();
 
     const QString off = main->core->cmd("afo entry0").trimmed();
+    RVA offset = off.toULongLong(0, 16);
+    updateViews(offset);
 
-    refreshDisasm(off);
-    refreshHexdump(off);
-    create_graph(off);
-    get_refs_data(off);
+    //refreshDisasm();
+    //refreshHexdump(off);
+    //create_graph(off);
+    get_refs_data(offset);
     //setFcnName(off);
 }
 
@@ -441,18 +467,20 @@ void MemoryWidget::replaceTextDisasm(QString txt)
     ui->disasTextEdit_2->setPlainText(txt);
 }
 
-void MemoryWidget::disasmScrolled()
+bool MemoryWidget::loadMoreDisassembly()
 {
     /*
-     * Add more disasm as the user scrolls
-     * Not working properly when scrolling upwards
-     * r2 doesn't handle properly 'pd-' for archs with variable instruction size
-     */
+         * Add more disasm as the user scrolls
+         * Not working properly when scrolling upwards
+         * r2 doesn't handle properly 'pd-' for archs with variable instruction size
+         */
 
     // Disconnect scroll signals to add more content
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
 
     QScrollBar *sb = this->disasTextEdit->verticalScrollBar();
+
+    bool loaded = false;
 
     if (sb->value() > sb->maximum() - 10)
     {
@@ -460,12 +488,11 @@ void MemoryWidget::disasmScrolled()
 
         QTextCursor tc = this->disasTextEdit->textCursor();
         tc.movePosition(QTextCursor::End);
-        tc.select(QTextCursor::LineUnderCursor);
-        QString lastline = tc.selectedText();
-        QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-        if (ele.contains("0x"))
+        RVA offset = readCurrentDisassemblyOffset();
+
+        if (offset != RVA_INVALID)
         {
-            this->main->core->seek(ele);
+            main->core->seek(offset);
             QString raw = this->main->core->cmd("pd 200");
             QString txt = raw.section("\n", 1, -1);
             //this->disasTextEdit->appendPlainText(" ;\n ; New content here\n ;\n " + txt.trimmed());
@@ -478,6 +505,9 @@ void MemoryWidget::disasmScrolled()
             QString lastline = tc.selectedText();
             this->main->addDebugOutput("Last line: " + lastline);
         }
+
+        loaded = true;
+
         // Code below will be used to append more disasm upwards, one day
     } /* else if (sb->value() < sb->minimum() + 10) {
         //this->main->add_debug_output("Begining is coming");
@@ -513,65 +543,63 @@ void MemoryWidget::disasmScrolled()
 
     // Reconnect scroll signals
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
+
+    return loaded;
 }
 
-void MemoryWidget::refreshDisasm(const QString &offset)
+
+void MemoryWidget::disasmScrolled()
+{
+    loadMoreDisassembly();
+}
+
+void MemoryWidget::refreshDisasm()
 {
     RCoreLocked lcore = this->main->core->core();
-    // we must store those ranges somewhere, to handle scroll
-    //ut64 addr = lcore->offset;
-    //int length = lcore->num->value;
-
-    //printf("refreshDisasm %s\n", offset.toLocal8Bit().constData());
 
     // Prevent further scroll
     disconnect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     disconnect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
 
-    // Get disas at offset
-    if (!offset.isEmpty())
+    RVA offset = next_disasm_top_offset;
+    next_disasm_top_offset = RVA_INVALID;
+    bool offset_changed = offset != RVA_INVALID;
+
+    if (offset_changed) // new offset (seek)
     {
-        this->main->core->cmd("s " + offset);
+        disasm_top_offset = offset;
+        this->main->core->cmd(QString("s %1").arg(offset));
     }
-    else
+    else // simple refresh
     {
-        // Get current offset
-        QTextCursor tc = this->disasTextEdit->textCursor();
-        tc.select(QTextCursor::LineUnderCursor);
-        QString lastline = tc.selectedText();
-        QStringList elements = lastline.split(" ", QString::SkipEmptyParts);
-        if (elements.length() > 0)
-        {
-            QString ele = elements[0];
-            if (ele.contains("0x"))
-            {
-                QString fcn = this->main->core->cmdFunctionAt(ele);
-                if (fcn != "")
-                {
-                    this->main->core->cmd("s " + fcn);
-                }
-                else
-                {
-                    this->main->core->cmd("s " + ele);
-                }
-            }
-        }
+        main->core->cmd(QString("s %1").arg(disasm_top_offset));
     }
 
-    QString txt2 = this->main->core->cmd("pd 100");
+    QString txt2 = this->main->core->cmd("pd 200");
+
+    disasTextEdit->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+
+    // if the offset changed, jump to the top
+    // otherwise try to retain the position
+    int cursor_pos = offset_changed ? 0 : disasTextEdit->textCursor().position();
+    int scroll_pos = offset_changed ? 0 : disasTextEdit->verticalScrollBar()->value();
+
     this->disasTextEdit->setPlainText(txt2.trimmed());
 
-    // TODO: Fixx this ugly code
-    //QString temp_seek = this->main->core->cmd("s").split("0x")[1].trimmed();
-    QString s = this->normalize_addr(this->main->core->cmd("s"));
-    //this->main->add_debug_output("Offset to search: " + s);
-    this->disasTextEdit->ensureCursorVisible();
-    /*this->disasTextEdit->moveCursor(QTextCursor::End);
+    auto cursor = disasTextEdit->textCursor();
+    cursor.setPosition(cursor_pos);
+    disasTextEdit->setTextCursor(cursor);
 
-    while (this->disasTextEdit->find(QRegExp("^" + s), QTextDocument::FindBackward))
+    disasTextEdit->verticalScrollBar()->setValue(scroll_pos);
+
+    // load more disassembly if necessary
+    static const int load_more_limit = 10; // limit passes, so it can't take forever
+    for (int load_more_i = 0; load_more_i < load_more_limit; load_more_i++)
     {
-        this->disasTextEdit->moveCursor(QTextCursor::StartOfWord, QTextCursor::MoveAnchor);
-    }*/
+        if (!loadMoreDisassembly())
+            break;
+        disasTextEdit->verticalScrollBar()->setValue(scroll_pos);
+    }
 
     connect(this->disasTextEdit->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(disasmScrolled()));
     connect(this->disasTextEdit, SIGNAL(cursorPositionChanged()), this, SLOT(on_disasTextEdit_2_cursorPositionChanged()));
@@ -754,7 +782,7 @@ void MemoryWidget::hexScrolled()
 
         // To prevent recursive calls to hexScrolled (this function) blocks the
         // scroll bar signals
-        auto appendTextWithoutSignals = [](QTextEdit *edit, const QString &text)
+        auto appendTextWithoutSignals = [](QTextEdit * edit, const QString & text)
         {
             edit->verticalScrollBar()->blockSignals(true);
             edit->append(text);
@@ -1001,6 +1029,7 @@ void MemoryWidget::showDisasContextMenu(const QPoint &pt)
         // Add menu actions
         menu->clear();
         menu->addAction(ui->actionDisasAdd_comment);
+        menu->addAction(ui->actionAddFlag);
         menu->addAction(ui->actionFunctionsRename);
         menu->addAction(ui->actionFunctionsUndefine);
         menu->addSeparator();
@@ -1054,32 +1083,49 @@ void MemoryWidget::on_offsetToolButton_clicked()
     }
 }
 
+
+void MemoryWidget::showXrefsDialog()
+{
+    // Get current offset
+    QTextCursor tc = this->disasTextEdit->textCursor();
+    tc.select(QTextCursor::LineUnderCursor);
+    QString lastline = tc.selectedText();
+    QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
+    if (ele.contains("0x"))
+    {
+        RVA addr = ele.toLongLong(0, 16);
+        XrefsDialog *x = new XrefsDialog(this->main, this);
+        x->fillRefsForAddress(addr, RAddressString(addr), false);
+        x->exec();
+    }
+}
+
 /*
  * Show widgets
  */
 
-void MemoryWidget::showHexdump()
-{
-    ui->hexButton_2->setChecked(true);
-    ui->memTabWidget->setCurrentIndex(1);
-    ui->memSideTabWidget_2->setCurrentIndex(1);
-}
-
 void MemoryWidget::cycleViews()
 {
-    if (ui->memTabWidget->currentIndex() == 0)
+    switch (ui->memTabWidget->currentIndex())
     {
+    case 0:
         // Show graph
         ui->graphButton_2->setChecked(true);
         ui->memTabWidget->setCurrentIndex(2);
         ui->memSideTabWidget_2->setCurrentIndex(0);
-    }
-    else
-    {
+        break;
+    case 2:
+        // Show hexdump
+        ui->hexButton_2->setChecked(true);
+        ui->memTabWidget->setCurrentIndex(1);
+        ui->memSideTabWidget_2->setCurrentIndex(1);
+        break;
+    default:
         // Show disasm
         ui->disButton_2->setChecked(true);
         ui->memTabWidget->setCurrentIndex(0);
         ui->memSideTabWidget_2->setCurrentIndex(0);
+        break;
     }
 }
 
@@ -1246,31 +1292,43 @@ void MemoryWidget::on_actionSend_to_Notepad_triggered()
 
 void MemoryWidget::on_actionDisasAdd_comment_triggered()
 {
-    // Get current offset
-    QTextCursor tc = this->disasTextEdit->textCursor();
-    tc.select(QTextCursor::LineUnderCursor);
-    QString lastline = tc.selectedText();
-    QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-    if (ele.contains("0x"))
+    RVA offset = readCurrentDisassemblyOffset();
+
+    // Get function for clicked offset
+    RAnalFunction *fcn = this->main->core->functionAt(offset);
+    CommentsDialog *c = new CommentsDialog(this);
+    if (c->exec())
     {
-        // Get function for clicked offset
-        RAnalFunction *fcn = this->main->core->functionAt(ele.toLongLong(0, 16));
-        CommentsDialog *c = new CommentsDialog(this);
-        if (c->exec())
+        // Get new function name
+        QString comment = c->getComment();
+        //this->main->add_debug_output("Comment: " + comment + " at: " + ele);
+        // Rename function in r2 core
+        this->main->core->setComment(offset, comment);
+        // Seek to new renamed function
+        if (fcn)
         {
-            // Get new function name
-            QString comment = c->getComment();
-            //this->main->add_debug_output("Comment: " + comment + " at: " + ele);
-            // Rename function in r2 core
-            this->main->core->setComment(ele, comment);
-            // Seek to new renamed function
-            if (fcn)
-            {
-                this->main->seek(fcn->name);
-            }
-            // TODO: Refresh functions tree widget
+            this->main->seek(fcn->name);
         }
+        // TODO: Refresh functions tree widget
     }
+
+    this->main->refreshComments();
+}
+
+
+void MemoryWidget::on_actionAddFlag_triggered()
+{
+    RVA offset = readCurrentDisassemblyOffset();
+
+    FlagDialog *dialog = new FlagDialog(main->core, offset, this);
+    if (dialog->exec())
+    {
+        //QString comment = dialog->getFlagName();
+        // Rename function in r2 core
+
+        //this->main->core->setComment(offset, comment);
+    }
+
     this->main->refreshComments();
 }
 
@@ -1296,7 +1354,6 @@ void MemoryWidget::on_actionFunctionsRename_triggered()
             this->main->core->renameFunction(fcn->name, new_name);
             // Seek to new renamed function
             this->main->seek(new_name);
-            // TODO: Refresh functions tree widget
         }
     }
     this->main->refreshFunctions();
@@ -1346,18 +1403,16 @@ void MemoryWidget::on_action1column_triggered()
 
 void MemoryWidget::on_xreFromTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QString offset = item->text(0);
-    RAnalFunction *fcn = this->main->core->functionAt(offset.toLongLong(0, 16));
-    //this->add_debug_output( fcn->name );
-    this->main->seek(offset, fcn->name);
+    XrefDescription xref = item->data(0, Qt::UserRole).value<XrefDescription>();
+    RAnalFunction *fcn = this->main->core->functionAt(xref.to);
+    this->main->seek(xref.to, fcn ? QString::fromUtf8(fcn->name) : QString::null, true);
 }
 
 void MemoryWidget::on_xrefToTreeWidget_2_itemDoubleClicked(QTreeWidgetItem *item, int /*column*/)
 {
-    QString offset = item->text(0);
-    RAnalFunction *fcn = this->main->core->functionAt(offset.toLongLong(0, 16));
-    //this->add_debug_output( fcn->name );
-    this->main->seek(offset, fcn->name);
+    XrefDescription xref = item->data(0, Qt::UserRole).value<XrefDescription>();
+    RAnalFunction *fcn = this->main->core->functionAt(xref.from);
+    this->main->seek(xref.from, fcn ? QString::fromUtf8(fcn->name) : QString::null, true);
 }
 
 void MemoryWidget::on_xrefFromToolButton_2_clicked()
@@ -1402,47 +1457,13 @@ void MemoryWidget::on_codeCombo_2_currentTextChanged(const QString &arg1)
     }
 }
 
-void MemoryWidget::get_refs_data(const QString &offset)
+void MemoryWidget::get_refs_data(RVA addr)
 {
-    // Get Refs and Xrefs
-    bool ok;
-    QList<QStringList> ret_refs;
-    QList<QStringList> ret_xrefs;
-
     // refs = calls q hace esa funcion
-    QList<QString> refs = this->main->core->getFunctionRefs(offset.toLong(&ok, 16), 'C');
-    if (refs.size() > 0)
-    {
-        for (int i = 0; i < refs.size(); ++i)
-        {
-            //this->add_debug_output(refs.at(i));
-            QStringList retlist = refs.at(i).split(",");
-            QStringList temp;
-            QString addr = retlist.at(2);
-            temp << addr;
-            QString op = this->main->core->cmd("pi 1 @ " + addr);
-            temp << op.simplified();
-            ret_refs << temp;
-        }
-    }
+    QList<XrefDescription> refs = main->core->getXRefs(addr, false, false);
 
     // xrefs = calls a esa funcion
-    //qDebug() << this->main->core->getFunctionXrefs(offset.toLong(&ok, 16));
-    QList<QString> xrefs = this->main->core->getFunctionXrefs(offset.toLong(&ok, 16));
-    if (xrefs.size() > 0)
-    {
-        for (int i = 0; i < xrefs.size(); ++i)
-        {
-            //this->add_debug_output(xrefs.at(i));
-            QStringList retlist = xrefs.at(i).split(",");
-            QStringList temp;
-            QString addr = retlist.at(1);
-            temp << addr;
-            QString op = this->main->core->cmd("pi 1 @ " + addr);
-            temp << op.simplified();
-            ret_xrefs << temp;
-        }
-    }
+    QList<XrefDescription> xrefs = main->core->getXRefs(addr, true, false);
 
     // Data for the disasm side graph
     QList<int> data;
@@ -1452,27 +1473,29 @@ void MemoryWidget::get_refs_data(const QString &offset)
     data << xrefs.size();
     //qDebug() << "CC: " << this->main->core->fcnCyclomaticComplexity(offset.toLong(&ok, 16));
     //data << this->main->core->fcnCyclomaticComplexity(offset.toLong(&ok, 16));
-    data << this->main->core->getCycloComplex(offset.toLong(&ok, 16));
+    data << this->main->core->getCycloComplex(addr);
     //qDebug() << "BB: " << this->main->core->fcnBasicBlockCount(offset.toLong(&ok, 16));
-    data << this->main->core->fcnBasicBlockCount(offset.toLong(&ok, 16));
-    data << this->main->core->fcnEndBbs(offset);
+    data << this->main->core->fcnBasicBlockCount(addr);
+    data << this->main->core->fcnEndBbs(addr);
     //qDebug() << "MEOW: " + this->main->core->fcnEndBbs(offset);
 
     // Update disasm side bar
-    this->fill_refs(ret_refs, ret_xrefs, data);
+    this->fill_refs(refs, xrefs, data);
 }
 
-void MemoryWidget::fill_refs(QList<QStringList> refs, QList<QStringList> xrefs, QList<int> graph_data)
+void MemoryWidget::fill_refs(QList<XrefDescription> refs, QList<XrefDescription> xrefs, QList<int> graph_data)
 {
     this->xreFromTreeWidget_2->clear();
     for (int i = 0; i < refs.size(); ++i)
     {
-        //this->add_debug_output(refs.at(i).at(0) + " " + refs.at(i).at(1));
+        XrefDescription xref = refs[i];
         QTreeWidgetItem *tempItem = new QTreeWidgetItem();
-        tempItem->setText(0, refs.at(i).at(0));
-        tempItem->setText(1, refs.at(i).at(1));
-        tempItem->setToolTip(0, this->main->core->cmd("pdi 10 @ " + refs.at(i).at(0)).trimmed());
-        tempItem->setToolTip(1, this->main->core->cmd("pdi 10 @ " + refs.at(i).at(0)).trimmed());
+        tempItem->setText(0, RAddressString(xref.to));
+        tempItem->setText(1, main->core->disassembleSingleInstruction(xref.from));
+        tempItem->setData(0, Qt::UserRole, QVariant::fromValue(xref));
+        QString tooltip = this->main->core->cmd("pdi 10 @ " + QString::number(xref.to)).trimmed();
+        tempItem->setToolTip(0, tooltip);
+        tempItem->setToolTip(1, tooltip);
         this->xreFromTreeWidget_2->insertTopLevelItem(0, tempItem);
     }
     // Adjust columns to content
@@ -1485,12 +1508,15 @@ void MemoryWidget::fill_refs(QList<QStringList> refs, QList<QStringList> xrefs, 
     this->xrefToTreeWidget_2->clear();
     for (int i = 0; i < xrefs.size(); ++i)
     {
-        //this->add_debug_output(xrefs.at(i).at(0) + " " + xrefs.at(i).at(1));
+        XrefDescription xref = xrefs[i];
+
         QTreeWidgetItem *tempItem = new QTreeWidgetItem();
-        tempItem->setText(0, xrefs.at(i).at(0));
-        tempItem->setText(1, xrefs.at(i).at(1));
-        tempItem->setToolTip(0, this->main->core->cmd("pdi 10 @ " + xrefs.at(i).at(0)).trimmed());
-        tempItem->setToolTip(1, this->main->core->cmd("pdi 10 @ " + xrefs.at(i).at(0)).trimmed());
+        tempItem->setText(0, RAddressString(xref.from));
+        tempItem->setText(1, main->core->disassembleSingleInstruction(xref.from));
+        tempItem->setData(0, Qt::UserRole, QVariant::fromValue(xref));
+        QString tooltip = this->main->core->cmd("pdi 10 @ " + QString::number(xref.from)).trimmed();
+        tempItem->setToolTip(0, this->main->core->cmd("pdi 10 @ " + tooltip).trimmed());
+        tempItem->setToolTip(1, this->main->core->cmd("pdi 10 @ " + tooltip).trimmed());
         this->xrefToTreeWidget_2->insertTopLevelItem(0, tempItem);
     }
     // Adjust columns to content
@@ -1573,7 +1599,9 @@ void MemoryWidget::create_graph(QString off)
     if (settings.value("dark").toBool())
     {
         ui->graphWebView->page()->runJavaScript(QString("init_panel('dark');"));
-    } else {
+    }
+    else
+    {
         ui->graphWebView->page()->runJavaScript(QString("init_panel('light');"));
     }
 }
@@ -1622,7 +1650,8 @@ void MemoryWidget::on_disasTextEdit_2_cursorPositionChanged()
     tc.select(QTextCursor::LineUnderCursor);
     QString lastline = tc.selectedText().trimmed();
     QList<QString> words = lastline.split(" ", QString::SkipEmptyParts);
-    if (words.length() == 0) {
+    if (words.length() == 0)
+    {
         return;
     }
     QString ele = words[0];
@@ -1667,7 +1696,6 @@ void MemoryWidget::on_disasTextEdit_2_cursorPositionChanged()
             // Refresh function information at sidebar
             ui->fcnNameEdit->setText(at);
             this->main->memoryDock->setWindowTitle(at);
-            this->main->memoryDock->get_refs_data(ele);
             //this->main->memoryDock->create_graph(ele);
             this->setMiniGraph(at);
         }
@@ -1748,13 +1776,13 @@ void MemoryWidget::on_memSideToolButton_clicked()
     {
         ui->memSideTabWidget_2->hide();
         ui->hexSideTab_2->hide();
-        ui->memSideToolButton->setIcon(QIcon(":/new/prefix1/img/icons/left.png"));
+        ui->memSideToolButton->setIcon(QIcon(":/img/icons/left_light.svg"));
     }
     else
     {
         ui->memSideTabWidget_2->show();
         ui->hexSideTab_2->show();
-        ui->memSideToolButton->setIcon(QIcon(":/new/prefix1/img/icons/right.png"));
+        ui->memSideToolButton->setIcon(QIcon(":/img/icons/right_light.svg"));
     }
 }
 
@@ -1859,64 +1887,7 @@ void MemoryWidget::setScrollMode()
 
 void MemoryWidget::on_actionXRefs_triggered()
 {
-    // Get current offset
-    QTextCursor tc = this->disasTextEdit->textCursor();
-    tc.select(QTextCursor::LineUnderCursor);
-    QString lastline = tc.selectedText();
-    QString ele = lastline.split(" ", QString::SkipEmptyParts)[0];
-    if (ele.contains("0x"))
-    {
-        // Get function for clicked offset
-        RAnalFunction *fcn = this->main->core->functionAt(ele.toLongLong(0, 16));
-        if (!fcn)
-        {
-            return;
-        }
-        XrefsDialog *x = new XrefsDialog(this->main, this);
-        x->setWindowTitle("X-Refs for function " + QString(fcn->name));
-        x->updateLabels(QString(fcn->name));
-
-        // Get Refs and Xrefs
-        QList<QStringList> ret_refs;
-        QList<QStringList> ret_xrefs;
-
-        // refs = calls q hace esa funcion
-        QList<QString> refs = this->main->core->getFunctionRefs(fcn->addr, 'C');
-        if (refs.size() > 0)
-        {
-            for (int i = 0; i < refs.size(); ++i)
-            {
-                //this->main->add_debug_output(refs.at(i));
-                QStringList retlist = refs.at(i).split(",");
-                QStringList temp;
-                QString addr = retlist.at(2);
-                temp << addr;
-                QString op = this->main->core->cmd("pi 1 @ " + addr);
-                temp << op.simplified();
-                ret_refs << temp;
-            }
-        }
-
-        // xrefs = calls a esa funcion
-        //qDebug() << this->main->core->getFunctionXrefs(offset.toLong(&ok, 16));
-        QList<QString> xrefs = this->main->core->getFunctionXrefs(fcn->addr);
-        if (xrefs.size() > 0)
-        {
-            for (int i = 0; i < xrefs.size(); ++i)
-            {
-                //this->main->add_debug_output(xrefs.at(i));
-                QStringList retlist = xrefs.at(i).split(",");
-                QStringList temp;
-                QString addr = retlist.at(1);
-                temp << addr;
-                QString op = this->main->core->cmd("pi 1 @ " + addr);
-                temp << op.simplified();
-                ret_xrefs << temp;
-            }
-        }
-        x->fillRefs(ret_refs, ret_xrefs);
-        x->exec();
-    }
+    showXrefsDialog();
 }
 
 
@@ -2012,7 +1983,7 @@ void MemoryWidget::on_memTabWidget_currentChanged(int /*index*/)
     this->updateViews();
 }
 
-void MemoryWidget::updateViews()
+void MemoryWidget::updateViews(RVA offset)
 {
     // Update only the selected view to improve performance
 
@@ -2022,14 +1993,13 @@ void MemoryWidget::updateViews()
 
     QString cursor_addr_string = RAddressString(cursor_addr);
 
+    if (offset != RVA_INVALID)
+        next_disasm_top_offset = offset;
+
     if (index == 0)
     {
         // Disasm
-        if (this->last_disasm_fcn != cursor_addr)
-        {
-            this->refreshDisasm(cursor_addr_string);
-            this->last_disasm_fcn = cursor_addr;
-        }
+        this->refreshDisasm();
     }
     else if (index == 1)
     {

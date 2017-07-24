@@ -60,6 +60,7 @@
 #include "widgets/consolewidget.h"
 #include "settings.h"
 #include "optionsdialog.h"
+#include "widgets/entrypointwidget.h"
 
 // graphics
 #include <QGraphicsEllipseItem>
@@ -70,10 +71,10 @@
 
 static void registerCustomFonts()
 {
-    int ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Anonymous Pro.ttf");
+    int ret = QFontDatabase::addApplicationFont(":/fonts/Anonymous Pro.ttf");
     assert(-1 != ret && "unable to register Anonymous Pro.ttf");
 
-    ret = QFontDatabase::addApplicationFont(":/new/prefix1/fonts/Inconsolata-Regular.ttf");
+    ret = QFontDatabase::addApplicationFont(":/fonts/Inconsolata-Regular.ttf");
     assert(-1 != ret && "unable to register Inconsolata-Regular.ttf");
 
     // do not issue a warning in release
@@ -82,7 +83,7 @@ static void registerCustomFonts()
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    core(new QRCore()),
+    core(new IaitoRCore()),
     memoryDock(nullptr),
     notepadDock(nullptr),
     asmDock(nullptr),
@@ -107,6 +108,7 @@ MainWindow::MainWindow(QWidget *parent) :
     sidebar_action(nullptr),
     sectionsDock(nullptr),
     consoleWidget(nullptr),
+    entrypointDock(nullptr),
     webserver(core)
 {
     doLock = false;
@@ -143,7 +145,7 @@ void MainWindow::initUI()
 
     // Popup menu on theme toolbar button
     QToolButton *backButton = new QToolButton(this);
-    backButton->setIcon(QIcon(":/new/prefix1/img/icons/arrow_left.png"));
+    backButton->setIcon(QIcon(":/img/icons/arrow_left.svg"));
     //backButton->setPopupMode(QToolButton::DelayedPopup);
     ui->mainToolBar->insertWidget(ui->actionForward, backButton);
     connect(backButton, SIGNAL(clicked()), this, SLOT(on_backButton_clicked()));
@@ -194,6 +196,10 @@ void MainWindow::initUI()
     // Add Sections dock panel
     this->sectionsDock = new SectionsDock(this);
     dockWidgets.push_back(sectionsDock);
+
+    // Add entrypoint DockWidget
+    this->entrypointDock = new EntrypointWidget(this);
+    dockWidgets.push_back(entrypointDock);
 
     // Add functions DockWidget
     this->functionsDock = new FunctionsWidget(this);
@@ -284,7 +290,7 @@ void MainWindow::openFile(const QString &fn, int anal_level, QList<QString> adva
 {
     QString project_name = qhelpers::uniqueProjectName(fn);
 
-    if(core->getProjectNames().contains(project_name))
+    if (core->getProjectNames().contains(project_name))
         openProject(project_name);
     else
         openNewFile(fn, anal_level, advanced);
@@ -298,7 +304,7 @@ void MainWindow::openNewFile(const QString &fn, int anal_level, QList<QString> a
     o->setAttribute(Qt::WA_DeleteOnClose);
     o->show();
 
-    if(anal_level >= 0)
+    if (anal_level >= 0)
         o->setupAndStartAnalysis(anal_level, advanced);
 }
 
@@ -327,7 +333,6 @@ void MainWindow::finalizeOpen()
     core->cmd("fs sections");
     updateFrames();
 
-    get_refs(core->cmd("?v entry0"));
     memoryDock->selectHexPreview();
 
     // Restore project notes
@@ -344,7 +349,7 @@ void MainWindow::finalizeOpen()
         addOutput(" > Adding binary information to notepad");
 
         notepadDock->setText("# Binary information\n\n" + core->cmd("i") +
-                "\n" + core->cmd("ie") + "\n" + core->cmd("iM") + "\n");
+                             "\n" + core->cmd("ie") + "\n" + core->cmd("iM") + "\n");
     }
 
     //Get binary beginning/end addresses
@@ -629,7 +634,7 @@ void MainWindow::on_actionLockUnlock_triggered()
         {
             dockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
         }
-        ui->actionLockUnlock->setIcon(QIcon(":/new/prefix1/lock"));
+        ui->actionLockUnlock->setIcon(QIcon(":/lock"));
     }
     else
     {
@@ -637,7 +642,7 @@ void MainWindow::on_actionLockUnlock_triggered()
         {
             dockWidget->setFeatures(QDockWidget::AllDockWidgetFeatures);
         }
-        ui->actionLockUnlock->setIcon(QIcon(":/new/prefix1/unlock"));
+        ui->actionLockUnlock->setIcon(QIcon(":/unlock"));
     }
 }
 
@@ -667,6 +672,11 @@ void MainWindow::on_actionMem_triggered()
     this->tabifyDockWidget(this->memoryDock, newMemDock);
     newMemDock->refreshDisasm();
     newMemDock->refreshHexdump();
+}
+
+void MainWindow::on_actionEntry_points_triggered()
+{
+    toggleDockWidget(entrypointDock);
 }
 
 void MainWindow::on_actionFunctions_triggered()
@@ -768,9 +778,10 @@ void MainWindow::seek(const RVA offset, const QString &name, bool raise_memory_d
     this->hexdumpTopOffset = 0;
     this->hexdumpBottomOffset = 0;
     core->seek(offset);
+    emit globalSeekTo(offset);
     setCursorAddress(offset);
 
-    refreshMem(offset);
+    //refreshMem();
     this->memoryDock->disasTextEdit->setFocus();
 
     // Rise and shine baby!
@@ -781,22 +792,8 @@ void MainWindow::seek(const RVA offset, const QString &name, bool raise_memory_d
 void MainWindow::refreshMem()
 {
     this->memoryDock->updateViews();
-
 }
 
-void MainWindow::refreshMem(RVA offset)
-{
-    //add_debug_output("Refreshing to: " + off);
-    //graphicsBar->refreshColorBar();
-    /*
-    this->memoryDock->refreshDisasm(off);
-    this->memoryDock->refreshHexdump(off);
-    this->memoryDock->create_graph(off);
-    */
-    refreshMem();
-    this->memoryDock->get_refs_data(RAddressString(offset));
-    //this->memoryDock->setFcnName(offset);
-}
 
 void MainWindow::on_backButton_clicked()
 {
@@ -846,6 +843,7 @@ void MainWindow::restoreDocks()
     addDockWidget(Qt::TopDockWidgetArea, this->dashboardDock);
     this->tabifyDockWidget(sectionsDock, this->commentsDock);
     this->tabifyDockWidget(this->dashboardDock, this->memoryDock);
+    this->tabifyDockWidget(this->dashboardDock, this->entrypointDock);
     this->tabifyDockWidget(this->dashboardDock, this->functionsDock);
     this->tabifyDockWidget(this->dashboardDock, this->flagsDock);
     this->tabifyDockWidget(this->dashboardDock, this->stringsDock);
@@ -878,6 +876,7 @@ void MainWindow::hideAllDocks()
 void MainWindow::showDefaultDocks()
 {
     const QList<DockWidget *> defaultDocks = { sectionsDock,
+                                               entrypointDock,
                                                functionsDock,
                                                memoryDock,
                                                commentsDock,
@@ -920,11 +919,6 @@ void MainWindow::on_actionFunctionsRename_triggered()
     // Get function based on click position
     //r->setFunctionName(fcn_name);
     r->open();
-}
-
-void MainWindow::get_refs(const QString &offset)
-{
-    this->memoryDock->get_refs_data(offset);
 }
 
 void MainWindow::addOutput(const QString &msg)
@@ -1040,9 +1034,9 @@ void MainWindow::on_actionTabs_on_Top_triggered()
 void MainWindow::on_actionReset_settings_triggered()
 {
     QMessageBox::StandardButton ret =
-            (QMessageBox::StandardButton)QMessageBox::question(this, "Iaito",
-                                                               "Do you really want to clear all settings?",
-                                                               QMessageBox::Ok | QMessageBox::Cancel);
+        (QMessageBox::StandardButton)QMessageBox::question(this, "Iaito",
+                "Do you really want to clear all settings?",
+                QMessageBox::Ok | QMessageBox::Cancel);
     if (ret == QMessageBox::Ok)
     {
         // Save options in settings

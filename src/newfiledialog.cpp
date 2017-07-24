@@ -12,7 +12,7 @@ const int NewFileDialog::MaxRecentFiles;
 
 static QColor getColorFor(QString str, int pos)
 {
-    QNOTUSED(str);
+    IAITONOTUSED(str);
 
     QList<QColor> Colors;
     Colors << QColor(29, 188, 156); // Turquoise
@@ -76,7 +76,7 @@ NewFileDialog::NewFileDialog(QWidget *parent) :
         QFileInfo info(files[i]);
 
         QListWidgetItem *item = new QListWidgetItem(getIconFor(name, i), files[i] + "\nCreated: " + info.created().toString() + "\nSize: " +  QString::number(info.size()));
-        //":/new/prefix1/img/icons/target.png"), name );
+        //":/img/icons/target.svg"), name );
         item->setData(Qt::UserRole, files[i]);
         ui->recentsList->addItem(item);
     }

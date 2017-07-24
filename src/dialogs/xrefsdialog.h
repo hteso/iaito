@@ -2,6 +2,7 @@
 #define XREFSDIALOG_H
 
 #include "highlighter.h"
+#include "iaitorcore.h"
 
 #include <QDialog>
 #include <QTreeWidgetItem>
@@ -21,8 +22,7 @@ public:
     explicit XrefsDialog(MainWindow *main, QWidget *parent = 0);
     ~XrefsDialog();
 
-    void fillRefs(QList<QStringList> refs, QList<QStringList> xrefs);
-    void updateLabels(QString name);
+    void fillRefsForAddress(RVA addr, QString name, bool whole_function);
 
 private slots:
 
@@ -38,10 +38,17 @@ private slots:
     void on_toTreeWidget_itemSelectionChanged();
 
 private:
+    RVA addr;
+    QString func_name;
+
     Ui::XrefsDialog *ui;
     MainWindow *main;
 
     Highlighter      *highlighter;
+
+    void fillRefs(QList<XrefDescription> refs, QList<XrefDescription> xrefs);
+    void updateLabels(QString name);
+    void updatePreview(RVA addr);
 
 };
 
