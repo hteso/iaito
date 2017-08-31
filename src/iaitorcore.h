@@ -13,7 +13,7 @@
 #include <r2hacks.h>
 #endif //_WIN32
 
-#include <r_core.h>
+#include "r_core.h"
 
 //Workaround for compile errors on Windows.
 #ifdef _WIN32
