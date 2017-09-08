@@ -15,6 +15,6 @@ bool IaitoRDisasm::disassembleAt(ut64 addr, IaitoRDisasmOption opt, IaitoRDisasm
     IAITONOTUSED(opt);
     IAITONOTUSED(dr);
 
-    printf(QObject::tr("FUCK\n"));
+    printf("FUCK\n");
     return false;
 }

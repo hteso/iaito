@@ -366,8 +366,8 @@ void MainWindow::finalizeOpen()
     {
         addOutput(tr(" > Adding binary information to notepad"));
 
-        notepadDock->setText(tr("# Binary information\n\n" + core->cmd("i") +
-                             "\n" + core->cmd("ie") + "\n" + core->cmd("iM") + "\n"));
+        notepadDock->setText(tr("# Binary information\n\n") + core->cmd("i") +
+                             "\n" + core->cmd("ie") + "\n" + core->cmd("iM") + "\n");
     }
 
     //Get binary beginning/end addresses
@@ -940,7 +940,7 @@ void MainWindow::addOutput(const QString &msg)
 
 void MainWindow::addDebugOutput(const QString &msg)
 {
-    printf(tr("debug output: %s\n"), msg.toLocal8Bit().constData());
+    printf("debug output: %s\n", msg.toLocal8Bit().constData());
     consoleWidget->addDebugOutput(msg);
 }
 
@@ -967,7 +967,7 @@ void MainWindow::on_actionRun_Script_triggered()
     if (!fileName.length()) //cancel was pressed
         return;
 
-    qDebug() << tr("Meow: ") + fileName;
+    qDebug() << "Meow: " + fileName;
     this->core->cmd(". " + fileName);
     this->refreshMem();
 }

@@ -129,7 +129,7 @@ void createNewDialog::on_buttonCreate_clicked()
     }
     else if (type == "C Code")
     {
-        __alert(tr("C Code: TODO"));
+        __alert("C Code: TODO");
         // ragg2-cc -x
     }
     else if (type == "Radare2 script")
@@ -151,7 +151,7 @@ void createNewDialog::on_buttonCreate_clicked()
             }
             else
             {
-                __alert(tr("failed to open file"));
+                __alert(tr("Failed to open file"));
             }
         }
         else
@@ -174,7 +174,7 @@ void createNewDialog::on_buttonCreate_clicked()
             }
             else
             {
-                __alert(tr("failed to open file"));
+                __alert(tr("Failed to open file"));
             }
         }
         else
@@ -199,7 +199,7 @@ void createNewDialog::on_buttonCreate_clicked()
             }
             else
             {
-                __alert(tr("failed to open file"));
+                __alert(tr("Failed to open file"));
             }
         }
         else
@@ -216,7 +216,7 @@ void createNewDialog::on_buttonCreate_clicked()
 
     if (format != "Raw")
     {
-        __alert(tr("TODO: non-raw fileformat is not yet supported"));
+        __alert("TODO: non-raw fileformat is not yet supported");
         created = false;
         delete w->core;
     }
