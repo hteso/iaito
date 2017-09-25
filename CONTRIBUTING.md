@@ -1,3 +1,7 @@
+# IMPORTANT NOTICE
+
+The project was moved to https://github.com/radareorg/cutter
+
 ## Code formatting
 
 We use [AStyle 2.06](https://sourceforge.net/projects/astyle/files/astyle/astyle%202.06/) to format the code. The command line for formatting the code according to the style is:
