@@ -4,6 +4,9 @@
 
 A Qt and C++ GUI for radare2 reverse engineering framework
 
+# IMPORTANT NOTICE
+The project was moved to https://github.com/radareorg/cutter
+
 ## Screenshot
 
 ![Screenshot](https://raw.githubusercontent.com/hteso/iaito/master/Screenshots/Screenshot.png)
